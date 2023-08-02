@@ -264,6 +264,8 @@ namespace Raz.VRCMicOverlay
                 vr.SetOverlayTransform(overlay, CalculateIconTransform(vr));
                 vr.SetOverlayWidth(overlay, Config.ICON_SIZE * _iconScaleFactorCurrent);
                 vr.SetOverlayAlpha(overlay, iconAlphaFactorSetting);
+
+                Thread.Sleep(1);
             }
         }
 
