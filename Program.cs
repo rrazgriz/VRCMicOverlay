@@ -357,7 +357,7 @@ namespace Raz.VRCMicOverlay
             var transform = vr.GetDeviceToAbsoluteTrackingPose()[0].mDeviceToAbsoluteTracking; // Device 0 should *always* be the hmd
             var pOffset = new HmdVector3_t
             {
-                v0 = Config.ICON_OFFSET_X + _xOffset,
+                v0 = Config.ICON_OFFSET_X,
                 v1 = Config.ICON_OFFSET_Y,
                 v2 = Config.ICON_OFFSET_Z
             };
