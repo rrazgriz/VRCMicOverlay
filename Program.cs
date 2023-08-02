@@ -66,10 +66,6 @@ namespace Raz.VRCMicOverlay
         static float _mutedMicLevelTimer = 0.0f;
         static float _unmutedMicLevelTimer = 0.0f;
 
-        // Anti burn-in
-        static float _xOffset = 0;
-        static readonly Stopwatch antiBurninStopwatch = new();
-
         enum MuteState { MUTED, UNMUTED }
         static MuteState _muteState = MuteState.MUTED;
 
