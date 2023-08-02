@@ -4,6 +4,7 @@ using System.Diagnostics;
 using NAudio.Wave;
 using System.Text.Json;
 using VRC.OSCQuery;
+using System.Runtime.InteropServices;
 
 // Uses code from the following:
 // EasyOpenVR, by BOLL7708 (license pending) : https://github.com/BOLL7708/EasyOpenVR
@@ -151,6 +152,9 @@ namespace Raz.VRCMicOverlay
 
             // Sound device setup, for listening to audio levels while muted (VRC doesn't send the Voice parameter when muted)
             SetupMicListener();
+
+            // Minimize console window (6 corresponds to a native enum or something that means minimize)
+            ShowWindow(GetConsoleWindow(), 6);
 
             stopWatch.Start();
 
@@ -370,5 +374,12 @@ namespace Raz.VRCMicOverlay
 
             return transform;
         }
+
+        [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow([In] IntPtr hWnd, [In] int nCmdShow);
+        
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetConsoleWindow();
     }
 }
