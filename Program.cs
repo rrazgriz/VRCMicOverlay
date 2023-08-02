@@ -310,7 +310,7 @@ namespace Raz.VRCMicOverlay
             {
                 var deviceCapabilities = NAudio.Wave.WaveInEvent.GetCapabilities(i);
                 string deviceName = deviceCapabilities.ProductName;
-                if (deviceName.StartsWith(Config.AUDIO_DEVICE_STARTS_WITH))
+                if (deviceName.StartsWith(Config.AUDIO_DEVICE_STARTS_WITH) && Config.AUDIO_DEVICE_STARTS_WITH != "")
                 {
                     Console.Write($"✓");
                     deviceID = i;
