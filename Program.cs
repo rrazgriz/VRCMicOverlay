@@ -3,6 +3,7 @@ using Valve.VR;
 using System.Diagnostics;
 using NAudio.Wave;
 using System.Text.Json;
+using VRC.OSCQuery;
 
 // Uses code from the following:
 // EasyOpenVR, by BOLL7708 (license pending) : https://github.com/BOLL7708/EasyOpenVR
@@ -38,9 +39,11 @@ namespace Raz.VRCMicOverlay
         public string FILENAME_MIC_UNMUTED = "microphone-unmuted.png";
         public string FILENAME_MIC_MUTED = "microphone-muted.png";
 
+        public bool USE_LEGACY_OSC = true;
+        public int LEGACY_OSC_LISTEN_PORT = 9001;
+
         public string MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf"; // OSC Parameter Path
         public string VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
-        public int OSC_LISTEN_PORT = 9001;
     }
 
     internal class Program
@@ -118,8 +121,32 @@ namespace Raz.VRCMicOverlay
             vr.SetOverlayAlpha(overlay, (float)_iconAlphaFactorCurrent);
 
             // OSC Setup
+            int oscPort = Config.USE_LEGACY_OSC ? Config.LEGACY_OSC_LISTEN_PORT : VRC.OSCQuery.Extensions.GetAvailableUdpPort();
+            if (!Config.USE_LEGACY_OSC)
+            {
+                int oscQueryPort = VRC.OSCQuery.Extensions.GetAvailableTcpPort();
+                string oscIP = "127.0.0.1";
+
+                const string OSCQUERY_SERVICE_NAME = "VRCMicOverlay";
+                Console.Write($"\nSetting up OSCQuery on {oscIP} UDP:{oscPort} TCP:{oscQueryPort}\n");
+                IDiscovery discovery = new MeaModDiscovery();
+                var oscQuery = new OSCQueryServiceBuilder()
+                    .WithServiceName(OSCQUERY_SERVICE_NAME)
+                    .WithUdpPort(oscPort)
+                    .WithTcpPort(oscQueryPort)
+                    .WithDiscovery(discovery)
+                    .StartHttpServer()
+                    .AdvertiseOSC()
+                    .AdvertiseOSCQuery()
+                    .Build();
+
+                oscQuery.RefreshServices();
+                oscQuery.AddEndpoint<bool>(Config.MUTE_SELF_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
+                oscQuery.AddEndpoint<float>(Config.VOICE_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
+            }
+
             SimpleOSC oscReceiver = new();
-            var oscEndpoint = oscReceiver.OpenClient(Config.OSC_LISTEN_PORT);
+            var oscEndpoint = oscReceiver.OpenClient(oscPort);
             List<SimpleOSC.OSCMessage> incomingMessages = new();
 
             // Sound device setup, for listening to audio levels while muted (VRC doesn't send the Voice parameter when muted)
@@ -334,12 +361,12 @@ namespace Raz.VRCMicOverlay
                 v1 = Config.ICON_OFFSET_Y,
                 v2 = Config.ICON_OFFSET_Z
             };
-            transform = Extensions.Translate(transform, pOffset);
+            transform = BOLL7708.Extensions.Translate(transform, pOffset);
 
             // Rotate the icon to point at the head
             double rX = Math.Tan((Config.ICON_OFFSET_Y) / (Math.Sqrt(Config.ICON_OFFSET_X * Config.ICON_OFFSET_X + Config.ICON_OFFSET_Z * Config.ICON_OFFSET_Z))) * RAD_TO_DEG;
             double rY = Math.Tan((Config.ICON_OFFSET_Z) / (Config.ICON_OFFSET_X)) * RAD_TO_DEG;
-            transform = Extensions.Rotate(transform, rX, -rY, 0); // Shouldn't need to spin it in Z
+            transform = BOLL7708.Extensions.Rotate(transform, rX, -rY, 0); // Shouldn't need to spin it in Z
 
             return transform;
         }
