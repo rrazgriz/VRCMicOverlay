@@ -193,8 +193,9 @@ namespace Raz.VRCMicOverlay
                                 
                                 if (_muteState == MuteState.MUTED)
                                 {
-                                    _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
                                     vr.SetOverlayTextureFromFile(overlay, mutedIconPath);
+
+                                    _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
 
                                     if (Config.USE_CUSTOM_MIC_SFX)
                                     {
@@ -203,8 +204,11 @@ namespace Raz.VRCMicOverlay
                                 }
                                 else
                                 {
-                                    _iconAlphaFactorCurrent = Config.ICON_UNMUTED_MAX_ALPHA;
                                     vr.SetOverlayTextureFromFile(overlay, unmutedIconPath);
+
+                                    // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
+                                    _iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
+                                    _unmutedMicLevelTimer = Config.MIC_UNMUTED_FADE_START; // This will be reset if there's voice activity
 
                                     if (Config.USE_CUSTOM_MIC_SFX)
                                     {
