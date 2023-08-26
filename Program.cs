@@ -1,6 +1,7 @@
 ﻿using BOLL7708;
 using Valve.VR;
 using System.Diagnostics;
+using System.Media;
 using NAudio.Wave;
 using System.Text.Json;
 using VRC.OSCQuery;
@@ -39,6 +40,11 @@ namespace Raz.VRCMicOverlay
 
         public string FILENAME_MIC_UNMUTED = "microphone-unmuted.png";
         public string FILENAME_MIC_MUTED = "microphone-muted.png";
+
+        public bool USE_CUSTOM_MIC_SFX = false;
+
+        public string FILENAME_SFX_MIC_UNMUTED = "sfx-unmute.wav"; // Must be wav
+        public string FILENAME_SFX_MIC_MUTED = "sfx-mute.wav"; // Must be wav
 
         public bool USE_LEGACY_OSC = true;
         public int LEGACY_OSC_LISTEN_PORT = 9001;
@@ -79,6 +85,7 @@ namespace Raz.VRCMicOverlay
 
             var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
 
+            // Settings
             if (File.Exists(SETTINGS_FILENAME))
             {
                 try
@@ -116,6 +123,10 @@ namespace Raz.VRCMicOverlay
             vr.SetOverlayVisibility(overlay, true);
             vr.SetOverlayWidth(overlay, Config.ICON_SIZE);
             vr.SetOverlayAlpha(overlay, (float)_iconAlphaFactorCurrent);
+
+            // Sound setup
+            System.Media.SoundPlayer sfxMute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_MUTED);
+            System.Media.SoundPlayer sfxUnmute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_UNMUTED);
 
             // OSC Setup
             int oscPort = Config.USE_LEGACY_OSC ? Config.LEGACY_OSC_LISTEN_PORT : VRC.OSCQuery.Extensions.GetAvailableUdpPort();
@@ -184,11 +195,21 @@ namespace Raz.VRCMicOverlay
                                 {
                                     _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
                                     vr.SetOverlayTextureFromFile(overlay, mutedIconPath);
+
+                                    if (Config.USE_CUSTOM_MIC_SFX)
+                                    {
+                                        sfxMute.Play();
+                                    }
                                 }
                                 else
                                 {
                                     _iconAlphaFactorCurrent = Config.ICON_UNMUTED_MAX_ALPHA;
                                     vr.SetOverlayTextureFromFile(overlay, unmutedIconPath);
+
+                                    if (Config.USE_CUSTOM_MIC_SFX)
+                                    {
+                                        sfxUnmute.Play();
+                                    }
                                 }
                             }
                             else if(message.path == Config.VOICE_PARAMETER_PATH)
