@@ -22,9 +22,9 @@ namespace Raz.VRCMicOverlay
         public float ICON_CHANGE_SCALE_FACTOR = 1.25f; // Scale icon by this factor when changing between mute/unmute
 
         public float ICON_MUTED_MAX_ALPHA   = 0.50f;
-        public float ICON_MUTED_MIN_ALPHA   = 0.05f;
+        public float ICON_MUTED_MIN_ALPHA   = 0.00f;
         public float ICON_UNMUTED_MAX_ALPHA = 0.75f;
-        public float ICON_UNMUTED_MIN_ALPHA = 0.00f;
+        public float ICON_UNMUTED_MIN_ALPHA = 0.05f;
 
         public float MIC_MUTED_FADE_START    = 1.0f; // Time to start fading (seconds)
         public float MIC_MUTED_FADE_PERIOD   = 2.0f; // Time to fade to minimum
