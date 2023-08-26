@@ -38,8 +38,8 @@ namespace Raz.VRCMicOverlay
         public string AUDIO_DEVICE_STARTS_WITH = "";
         public float MUTED_MIC_THRESHOLD = 0.15f;
 
-        public string FILENAME_MIC_UNMUTED = "microphone-unmuted.png";
-        public string FILENAME_MIC_MUTED = "microphone-muted.png";
+        public string FILENAME_IMG_MIC_UNMUTED = "microphone-unmuted.png";
+        public string FILENAME_IMG_MIC_MUTED = "microphone-muted.png";
 
         public bool USE_CUSTOM_MIC_SFX = false;
 
@@ -109,9 +109,9 @@ namespace Raz.VRCMicOverlay
                 File.WriteAllText(SETTINGS_FILENAME, jsonString);
             }
 
-            // File setup
-            string unmutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_MIC_UNMUTED });
-            string mutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_MIC_MUTED });
+            // Texture setup
+            string unmutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_IMG_MIC_UNMUTED });
+            string mutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_IMG_MIC_MUTED });
 
             // OpenVR Setup
             EasyOpenVRSingleton vr = EasyOpenVRSingleton.Instance;
@@ -222,7 +222,10 @@ namespace Raz.VRCMicOverlay
                         incomingMessages.Clear();
                     }
                 }
-                catch (Exception e) { }
+                catch (Exception e) 
+                {
+                    Console.WriteLine(e); 
+                }
 
                 // Calculate and apply changes in icon alpha/scale
                 // A lot of this stuff could be async
