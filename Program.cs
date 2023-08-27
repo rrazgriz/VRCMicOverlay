@@ -72,6 +72,9 @@ namespace Raz.VRCMicOverlay
         static float _mutedMicLevelTimer = 0.0f;
         static float _unmutedMicLevelTimer = 0.0f;
 
+        static double _updateRate = 1 / 144;
+        const float ICON_UNFADE_RATE = 1f / 0.05f; // rate per second, chosen arbitrarily
+
         enum MuteState { MUTED, UNMUTED }
         static MuteState _muteState = MuteState.MUTED;
 
@@ -123,6 +126,8 @@ namespace Raz.VRCMicOverlay
             vr.SetOverlayVisibility(overlay, true);
             vr.SetOverlayWidth(overlay, Config.ICON_SIZE);
             vr.SetOverlayAlpha(overlay, (float)_iconAlphaFactorCurrent);
+
+            _updateRate = 1 / (double)vr.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float);
 
             // Sound setup
             System.Media.SoundPlayer sfxMute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_MUTED);
@@ -231,13 +236,13 @@ namespace Raz.VRCMicOverlay
                     Console.WriteLine(e); 
                 }
 
-                // Calculate and apply changes in icon alpha/scale
-                // A lot of this stuff could be async
-                double elapsedTimeSeconds = (double)stopWatch.ElapsedMilliseconds / 1000;
-                const double UPDATE_RATE = 0.001;
-                const float ICON_UNFADE_RATE = 15;
-                if (elapsedTimeSeconds > UPDATE_RATE)
+                // Main timing loop
+                double elapsedTimeSeconds = stopWatch.Elapsed.TotalMilliseconds / 1000;
+                if (elapsedTimeSeconds > _updateRate)
                 {
+                    // Update Title
+                    Console.Title = $"VRCMicOverlay : {_muteState}";
+
                     stopWatch.Restart();
 
                     // Speaking Logic
@@ -320,7 +325,10 @@ namespace Raz.VRCMicOverlay
                 vr.SetOverlayWidth(overlay, Config.ICON_SIZE * _iconScaleFactorCurrent);
                 vr.SetOverlayAlpha(overlay, iconAlphaFactorSetting);
 
-                Thread.Sleep(1);
+                // Give up the rest of our time slice to anything else that needs to run
+                // From MSDN: If the value of the millisecondsTimeout argument is zero, the thread relinquishes the remainder of its time slice to any thread of equal priority that is ready to run.
+                // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.sleep
+                Thread.Sleep(0);
             }
         }
 
