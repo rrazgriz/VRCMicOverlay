@@ -96,6 +96,10 @@ namespace Raz.VRCMicOverlay
                     string jsonString = File.ReadAllText(SETTINGS_FILENAME);
                     Config = JsonSerializer.Deserialize<Configuration>(jsonString, options) ?? new Configuration();
                     Console.WriteLine($"Using settings from {SETTINGS_FILENAME}");
+
+                    // Write config back, in case it's been updated
+                    string newConfigString = JsonSerializer.Serialize(Config, options);
+                    File.WriteAllText(SETTINGS_FILENAME, newConfigString);
                 }
                 catch (Exception ex)
                 {
@@ -111,6 +115,9 @@ namespace Raz.VRCMicOverlay
                 string jsonString = JsonSerializer.Serialize(Config, options);
                 File.WriteAllText(SETTINGS_FILENAME, jsonString);
             }
+
+            Console.WriteLine("Configuration:");
+            Console.WriteLine(JsonSerializer.Serialize(Config, options));
 
             // Texture setup
             string unmutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_IMG_MIC_UNMUTED });
@@ -170,6 +177,8 @@ namespace Raz.VRCMicOverlay
 
             stopWatch.Start();
 
+            Console.WriteLine("All Set up! Listening...");
+
             // Main Program Loop
             while (true)
             {
@@ -184,7 +193,6 @@ namespace Raz.VRCMicOverlay
                             if (message.path == Config.MUTE_SELF_PARAMETER_PATH)
                             {
                                 _muteState = (bool)message.arguments[0] ? MuteState.MUTED : MuteState.UNMUTED;
-                                Console.WriteLine(_muteState.ToString());
 
                                 // Scale icon up (bounce)
                                 _iconScaleFactorCurrent = Config.ICON_CHANGE_SCALE_FACTOR;
