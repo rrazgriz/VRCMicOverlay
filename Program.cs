@@ -179,76 +179,76 @@ namespace Raz.VRCMicOverlay
             // Main Program Loop
             while (true)
             {
-                // Handle incoming OSC to get mute state (and unmuted mic level)
-                oscReceiver.GetIncomingOSC(incomingMessages);
-                try
-                {
-                    if (incomingMessages.Count > 0)
-                    {
-                        foreach (var message in incomingMessages)
-                        {
-                            if (message.path == OSC_MUTE_SELF_PARAMETER_PATH)
-                            {
-                                _muteState = (bool)message.arguments[0] ? MuteState.MUTED : MuteState.UNMUTED;
-
-                                // Scale icon up (bounce)
-                                _iconScaleFactorCurrent = Config.ICON_CHANGE_SCALE_FACTOR;
-
-                                // Reset timers if configured
-                                if (Config.RESTART_FADE_TIMER_ON_STATE_CHANGE)
-                                {
-                                    _mutedMicLevelTimer = 0;
-                                    _unmutedMicLevelTimer = 0;
-                                }
-                                
-                                if (_muteState == MuteState.MUTED)
-                                {
-                                    vr.SetOverlayTextureFromFile(overlay, mutedIconPath);
-
-                                    _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
-
-                                    if (Config.USE_CUSTOM_MIC_SFX)
-                                    {
-                                        sfxMute.Play();
-                                    }
-                                }
-                                else
-                                {
-                                    vr.SetOverlayTextureFromFile(overlay, unmutedIconPath);
-
-                                    // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
-                                    _iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
-                                    _unmutedMicLevelTimer = Config.MIC_UNMUTED_FADE_START; // This will be reset if there's voice activity
-
-                                    if (Config.USE_CUSTOM_MIC_SFX)
-                                    {
-                                        sfxUnmute.Play();
-                                    }
-                                }
-                            }
-                            else if(message.path == OSC_VOICE_PARAMETER_PATH)
-                            {
-                                _vrcMicLevel = (float)message.arguments[0];
-
-                            }
-                        }
-
-                        incomingMessages.Clear();
-                    }
-                }
-                catch (Exception e) 
-                {
-                    Console.WriteLine(e); 
-                }
-
                 // Main timing loop
                 double elapsedTimeSeconds = stopWatch.Elapsed.TotalMilliseconds / 1000;
                 if (elapsedTimeSeconds > _updateRate)
                 {
+                    stopWatch.Restart();
+
                     // Update Title
                     Console.Title = $"VRCMicOverlay : {_muteState}";
 
-                    stopWatch.Restart();
+                    // Handle incoming OSC to get mute state (and unmuted mic level)
+                    oscReceiver.GetIncomingOSC(incomingMessages);
+                    try
+                    {
+                        if (incomingMessages.Count > 0)
+                        {
+                            foreach (var message in incomingMessages)
+                            {
+                                if (message.path == OSC_MUTE_SELF_PARAMETER_PATH)
+                                {
+                                    _muteState = (bool)message.arguments[0] ? MuteState.MUTED : MuteState.UNMUTED;
+
+                                    // Scale icon up (bounce)
+                                    _iconScaleFactorCurrent = Config.ICON_CHANGE_SCALE_FACTOR;
+
+                                    // Reset timers if configured
+                                    if (Config.RESTART_FADE_TIMER_ON_STATE_CHANGE)
+                                    {
+                                        _mutedMicLevelTimer = 0;
+                                        _unmutedMicLevelTimer = 0;
+                                    }
+
+                                    if (_muteState == MuteState.MUTED)
+                                    {
+                                        vr.SetOverlayTextureFromFile(overlay, mutedIconPath);
+
+                                        _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
+
+                                        if (Config.USE_CUSTOM_MIC_SFX)
+                                        {
+                                            sfxMute.Play();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        vr.SetOverlayTextureFromFile(overlay, unmutedIconPath);
+
+                                        // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
+                                        _iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
+                                        _unmutedMicLevelTimer = Config.MIC_UNMUTED_FADE_START; // This will be reset if there's voice activity
+
+                                        if (Config.USE_CUSTOM_MIC_SFX)
+                                        {
+                                            sfxUnmute.Play();
+                                        }
+                                    }
+                                }
+                                else if (message.path == OSC_VOICE_PARAMETER_PATH)
+                                {
+                                    _vrcMicLevel = (float)message.arguments[0];
+
+                                }
+                            }
+
+                            incomingMessages.Clear();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
 
                     // Speaking Logic
                     if (_muteState == MuteState.MUTED)
@@ -320,15 +320,16 @@ namespace Raz.VRCMicOverlay
                     {
                         _iconScaleFactorCurrent = _iconScaleFactorTarget;
                     }
+
+                    // These are inside the timing loop so updates are only sent at the update rate
+                    float minAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MIN_ALPHA : Config.ICON_UNMUTED_MIN_ALPHA;
+                    float maxAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
+                    float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, _iconAlphaFactorCurrent));
+
+                    vr.SetOverlayTransform(overlay, CalculateIconTransform(vr));
+                    vr.SetOverlayWidth(overlay, Config.ICON_SIZE * _iconScaleFactorCurrent);
+                    vr.SetOverlayAlpha(overlay, iconAlphaFactorSetting);
                 }
-
-                float minAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MIN_ALPHA : Config.ICON_UNMUTED_MIN_ALPHA;
-                float maxAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
-                float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, _iconAlphaFactorCurrent));
-
-                vr.SetOverlayTransform(overlay, CalculateIconTransform(vr));
-                vr.SetOverlayWidth(overlay, Config.ICON_SIZE * _iconScaleFactorCurrent);
-                vr.SetOverlayAlpha(overlay, iconAlphaFactorSetting);
 
                 // Give up the rest of our time slice to anything else that needs to run
                 // From MSDN: If the value of the millisecondsTimeout argument is zero, the thread relinquishes the remainder of its time slice to any thread of equal priority that is ready to run.
