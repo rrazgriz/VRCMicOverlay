@@ -25,7 +25,7 @@ namespace Raz.VRCMicOverlay
         // VRChat doesn't output the Voice parameter while muted, so we have to read from a device ourselves
         // This adds a lot of dependencies so considering just not doing this
         public string AUDIO_DEVICE_STARTS_WITH = "";
-        public float MUTED_MIC_THRESHOLD = 0.15f;
+        public float MUTED_MIC_THRESHOLD = 0.1f;
 
         public float ICON_CHANGE_SCALE_FACTOR = 1.25f; // Scale icon by this factor when changing between mute/unmute
         public float ICON_SIZE = 0.05f; // Size, square, of icon overlay (in meters)
@@ -54,8 +54,7 @@ namespace Raz.VRCMicOverlay
         const string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
         static string SETTINGS_FILENAME = "settings.json";
 
-        // State management
-        // ----------------------
+        // Global State
         static float _iconScaleFactorCurrent = 1.0f;
         static float _iconScaleFactorTarget = 1.0f;
         static float _iconScaleFactorRate = 1.0f;
@@ -131,6 +130,7 @@ namespace Raz.VRCMicOverlay
             vr.SetOverlayWidth(overlay, Config.ICON_SIZE);
             vr.SetOverlayAlpha(overlay, (float)_iconAlphaFactorCurrent);
 
+            // Run at display frequency 
             _updateRate = 1 / (double)vr.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float);
 
             // Sound setup
@@ -138,9 +138,10 @@ namespace Raz.VRCMicOverlay
             System.Media.SoundPlayer sfxUnmute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_UNMUTED);
 
             // OSC Setup
-            int oscPort = Config.USE_LEGACY_OSC ? Config.LEGACY_OSC_LISTEN_PORT : VRC.OSCQuery.Extensions.GetAvailableUdpPort();
+            int oscPort = Config.LEGACY_OSC_LISTEN_PORT;
             if (!Config.USE_LEGACY_OSC)
             {
+                oscPort = VRC.OSCQuery.Extensions.GetAvailableUdpPort();
                 int oscQueryPort = VRC.OSCQuery.Extensions.GetAvailableTcpPort();
                 string oscIP = "127.0.0.1";
 
