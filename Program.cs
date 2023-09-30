@@ -21,6 +21,7 @@ namespace Raz.VRCMicOverlay
         public float ICON_UNMUTED_MIN_ALPHA = 0.05f;
 
         public bool USE_CUSTOM_MIC_SFX = false;
+        public float CUSTOM_MIC_SFX_VOLUME = 0.65f;
 
         // VRChat doesn't output the Voice parameter while muted, so we have to read from a device ourselves
         // This adds a lot of dependencies so considering just not doing this
@@ -136,6 +137,7 @@ namespace Raz.VRCMicOverlay
             // Sound setup
             System.Media.SoundPlayer sfxMute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_MUTED);
             System.Media.SoundPlayer sfxUnmute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_UNMUTED);
+            SetVolume(Config.CUSTOM_MIC_SFX_VOLUME);
 
             // OSC Setup
             int oscPort = Config.LEGACY_OSC_LISTEN_PORT;
@@ -420,5 +422,20 @@ namespace Raz.VRCMicOverlay
         
         [DllImport("kernel32.dll")]
         static extern IntPtr GetConsoleWindow();
+
+        // thanks to https://stackoverflow.com/questions/34277066/how-do-i-fade-out-the-audio-of-a-wav-file-using-soundplayer-instead-of-stopping
+        [DllImport("winmm.dll", EntryPoint = "waveOutGetVolume")]
+        private static extern int WaveOutGetVolume(IntPtr hwo, out uint dwVolume);
+
+        [DllImport("winmm.dll", EntryPoint = "waveOutSetVolume")]
+        private static extern int WaveOutSetVolume(IntPtr hwo, uint dwVolume);
+
+        private static int SetVolume(float volume)
+        {
+            float clampedVolume = MathF.Min(MathF.Max(volume, 0f), 1f);
+            ushort channelVolume = (ushort)Lerp(0, ushort.MaxValue, clampedVolume);
+            uint vol = (uint)channelVolume | ((uint)channelVolume << 16);
+            return WaveOutSetVolume(IntPtr.Zero, vol);
+        }
     }
 }
