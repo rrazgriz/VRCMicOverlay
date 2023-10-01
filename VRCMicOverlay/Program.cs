@@ -423,28 +423,18 @@ namespace Raz.VRCMicOverlay
 
             _deviceMicLevel = peakValue / maxValue;
         }
-
-        private static HmdMatrix34_t CalculateIconTransform()
+    
+        private static HmdMatrix34_t CalculateIconTransform() 
         {
-            const double RAD_TO_DEG = 180 / Math.PI;
-
-            TrackedDevicePose_t[] trackedDevicePoses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
+            var trackedDevicePoses = new TrackedDevicePose_t[1];
             OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0.0f, trackedDevicePoses);
+            
+            var rX = Math.Tan(Config.ICON_OFFSET_Y / Math.Sqrt(Config.ICON_OFFSET_X * Config.ICON_OFFSET_X + Config.ICON_OFFSET_Z * Config.ICON_OFFSET_Z));
+            var rY = Math.Tan(Config.ICON_OFFSET_Z / Config.ICON_OFFSET_X);
 
-            var transform = trackedDevicePoses[0].mDeviceToAbsoluteTracking; // Device 0 should *always* be the hmd
-            var pOffset = new HmdVector3_t
-            {
-                v0 = Config.ICON_OFFSET_X,
-                v1 = Config.ICON_OFFSET_Y,
-                v2 = Config.ICON_OFFSET_Z
-            };
-            transform = BOLL7708.Extensions.Translate(transform, pOffset);
-
-            // Rotate the icon to point at the head
-            double rX = Math.Tan((Config.ICON_OFFSET_Y) / (Math.Sqrt(Config.ICON_OFFSET_X * Config.ICON_OFFSET_X + Config.ICON_OFFSET_Z * Config.ICON_OFFSET_Z))) * RAD_TO_DEG;
-            double rY = Math.Tan((Config.ICON_OFFSET_Z) / (Config.ICON_OFFSET_X)) * RAD_TO_DEG;
-            transform = BOLL7708.Extensions.Rotate(transform, rX, -rY, 0); // Shouldn't need to spin it in Z
-
+            var transform = trackedDevicePoses[0].mDeviceToAbsoluteTracking
+                .Multiply(MatrixHelper.Translate(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z))
+                .Multiply(MatrixHelper.Rotate(rX, -rY)); // Rotate the icon to point at the head
             return transform;
         }
 
@@ -493,6 +483,55 @@ namespace Raz.VRCMicOverlay
             ushort channelVolume = (ushort)Lerp(0, ushort.MaxValue, clampedVolume);
             uint vol = (uint)channelVolume | ((uint)channelVolume << 16);
             return WaveOutSetVolume(IntPtr.Zero, vol);
+        }
+    }
+
+    public static class MatrixHelper 
+    {
+        public static HmdMatrix34_t Multiply(this HmdMatrix34_t @this, HmdMatrix34_t other) =>
+            new() 
+            {
+                m0 = @this.m0 * other.m0 + @this.m1 * other.m4 + @this.m2 * other.m8,
+                m1 = @this.m0 * other.m1 + @this.m1 * other.m5 + @this.m2 * other.m9,
+                m2 = @this.m0 * other.m2 + @this.m1 * other.m6 + @this.m2 * other.m10,
+                m3 = @this.m0 * other.m3 + @this.m1 * other.m7 + @this.m2 * other.m11 + @this.m3,
+                m4 = @this.m4 * other.m0 + @this.m5 * other.m4 + @this.m6 * other.m8,
+                m5 = @this.m4 * other.m1 + @this.m5 * other.m5 + @this.m6 * other.m9,
+                m6 = @this.m4 * other.m2 + @this.m5 * other.m6 + @this.m6 * other.m10,
+                m7 = @this.m4 * other.m3 + @this.m5 * other.m7 + @this.m6 * other.m11 + @this.m7,
+                m8 = @this.m8 * other.m0 + @this.m9 * other.m4 + @this.m10 * other.m8,
+                m9 = @this.m8 * other.m1 + @this.m9 * other.m5 + @this.m10 * other.m9,
+                m10 = @this.m8 * other.m2 + @this.m9 * other.m6 + @this.m10 * other.m10,
+                m11 = @this.m8 * other.m3 + @this.m9 * other.m7 + @this.m10 * other.m11 + @this.m11,
+            };
+
+        public static HmdMatrix34_t Translate(float tX, float tY, float tZ) =>
+            new() 
+            {
+                m0 = 1,
+                m5 = 1,
+                m10 = 1,
+                m3 = tX,
+                m7 = tY,
+                m11 = tZ,
+            };
+
+        public static HmdMatrix34_t Rotate(double rX, double rY) 
+        {
+            var cX = Math.Cos(rX);
+            var sX = Math.Sin(rX);
+            var cY = Math.Cos(rY);
+            var sY = Math.Sin(rY);
+
+            return new HmdMatrix34_t {
+                m0 = (float)cY,
+                m2 = (float)sY,
+                m5 = (float)cX,
+                m6 = (float)-sX,
+                m8 = (float)-sY,
+                m9 = (float)sX,
+                m10 = (float)cX * (float)cY,
+            };
         }
     }
 }
