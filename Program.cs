@@ -77,8 +77,13 @@ namespace Raz.VRCMicOverlay
         static MuteState _muteState = MuteState.MUTED;
 
         static readonly Stopwatch stopWatch = new();
+        static readonly Stopwatch processCheckTimer = new();
+        const float PROCESS_CHECK_INTERVAL = 5.0f;
+        const bool CHECK_IF_VRC_IS_RUNNING = true;
 
         static Configuration Config;
+
+        static bool _isVRCRunning = false;
 
         static void Main(string[] args)
         {
@@ -122,6 +127,7 @@ namespace Raz.VRCMicOverlay
             string mutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_IMG_MIC_MUTED });
 
             // OpenVR Setup
+            var error = new ETrackedPropertyError();
             EasyOpenVRSingleton vr = EasyOpenVRSingleton.Instance;
             vr.SetApplicationType(EVRApplicationType.VRApplication_Overlay);
             vr.Init();
@@ -176,6 +182,8 @@ namespace Raz.VRCMicOverlay
             // Minimize console window (6 corresponds to a native enum or something that means minimize)
             ShowWindow(GetConsoleWindow(), 6);
 
+            CheckIfVRCIsRunning(true);
+            processCheckTimer.Start();
             stopWatch.Start();
 
             Console.WriteLine("All Set up! Listening...");
@@ -189,8 +197,10 @@ namespace Raz.VRCMicOverlay
                 {
                     stopWatch.Restart();
 
+                    CheckIfVRCIsRunning();
+
                     // Update Title
-                    Console.Title = $"VRCMicOverlay : {_muteState}";
+                    Console.Title = $"VRCMicOverlay : {_muteState}{(_isVRCRunning ? "" : " (waiting)")}";
 
                     // Handle incoming OSC to get mute state (and unmuted mic level)
                     oscReceiver.GetIncomingOSC(incomingMessages);
@@ -330,6 +340,11 @@ namespace Raz.VRCMicOverlay
                     float maxAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
                     float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, _iconAlphaFactorCurrent));
 
+                    if (CHECK_IF_VRC_IS_RUNNING && !_isVRCRunning)
+                    {
+                        iconAlphaFactorSetting = 0.0f;
+                    }
+
                     vr.SetOverlayTransform(overlay, CalculateIconTransform(vr));
                     vr.SetOverlayWidth(overlay, Config.ICON_SIZE * _iconScaleFactorCurrent);
                     vr.SetOverlayAlpha(overlay, iconAlphaFactorSetting);
@@ -415,6 +430,31 @@ namespace Raz.VRCMicOverlay
             transform = BOLL7708.Extensions.Rotate(transform, rX, -rY, 0); // Shouldn't need to spin it in Z
 
             return transform;
+        }
+
+        private static bool IsProcessRunning(string processName)
+        {
+            Process[] pname = Process.GetProcessesByName(processName);
+            return pname.Length > 0;
+        }
+
+        private static void CheckIfVRCIsRunning(bool isFirstCheck = false)
+        {
+            if (CHECK_IF_VRC_IS_RUNNING && (isFirstCheck || processCheckTimer.Elapsed.TotalSeconds > PROCESS_CHECK_INTERVAL))
+            {
+                bool isVRCRunningNow = IsProcessRunning("VRChat");
+
+                if (isVRCRunningNow != _isVRCRunning || isFirstCheck)
+                {
+                    if (isVRCRunningNow)
+                        Console.WriteLine("VRChat Process Detected, showing Mic!");
+                    else
+                        Console.WriteLine("VRChat Process NOT Detected, hiding Mic!");
+                }
+
+                _isVRCRunning = isVRCRunningNow;
+                processCheckTimer.Restart();
+            }
         }
 
         [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
