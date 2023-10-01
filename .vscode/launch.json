@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/VRCMicOverlay/bin/Debug/net6.0/VRCMicOverlay.dll",
+            "program": "${workspaceFolder}/VRCMicOverlay/bin/Debug/net6.0/win-x64/VRCMicOverlay.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/VRCMicOverlay",
+            "cwd": "${workspaceFolder}/VRCMicOverlay/bin/Debug/net6.0/win-x64/",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false
