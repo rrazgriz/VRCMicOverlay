@@ -1,11 +1,12 @@
-﻿using BOLL7708;
-using Valve.VR;
-using System.Diagnostics;
-using System.Media;
-using NAudio.Wave;
+﻿using System;
 using System.Text.Json;
-using VRC.OSCQuery;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
+
+using BOLL7708;
+using Valve.VR;
+using NAudio.Wave;
+using VRC.OSCQuery;
 
 // Uses code from the following:
 // EasyOpenVR, by BOLL7708 (license pending) : https://github.com/BOLL7708/EasyOpenVR
@@ -132,7 +133,7 @@ namespace Raz.VRCMicOverlay
             vr.SetOverlayAlpha(overlay, (float)_iconAlphaFactorCurrent);
 
             // Run at display frequency 
-            _updateRate = 1 / (double)vr.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float);
+            _updateRate = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
 
             // Sound setup
             System.Media.SoundPlayer sfxMute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_MUTED);
