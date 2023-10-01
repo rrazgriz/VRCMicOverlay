@@ -3,10 +3,11 @@ using System.Text.Json;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
-using BOLL7708;
 using Valve.VR;
 using NAudio.Wave;
 using VRC.OSCQuery;
+using System.IO;
+using System.Reflection.Metadata;
 
 // Uses code from the following:
 // EasyOpenVR, by BOLL7708 (license pending) : https://github.com/BOLL7708/EasyOpenVR
@@ -127,16 +128,21 @@ namespace Raz.VRCMicOverlay
             string mutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_IMG_MIC_MUTED });
 
             // OpenVR Setup
-            var error = new ETrackedPropertyError();
-            EasyOpenVRSingleton vr = EasyOpenVRSingleton.Instance;
-            vr.SetApplicationType(EVRApplicationType.VRApplication_Overlay);
-            vr.Init();
+            var error = new ETrackedPropertyError(); // Dummy
+            var ovrApplicationType = EVRApplicationType.VRApplication_Overlay;
+            EVRInitError initError = EVRInitError.Unknown;
+            OpenVR.InitInternal(ref initError, ovrApplicationType);
 
-            var overlay = vr.CreateOverlay("VRCMicOverlayKeyHello", "VRCMicOverlay", CalculateIconTransform(vr));
-            vr.SetOverlayTextureFromFile(overlay, mutedIconPath);
-            vr.SetOverlayVisibility(overlay, true);
-            vr.SetOverlayWidth(overlay, Config.ICON_SIZE);
-            vr.SetOverlayAlpha(overlay, (float)_iconAlphaFactorCurrent);
+            //var overlayHandle = vr.CreateOverlay("VRCMicOverlayKeyHello", "VRCMicOverlay", CalculateIconTransform(vr));
+            ulong overlayHandle = 0;
+            var txform = CalculateIconTransform();
+            OpenVR.Overlay.CreateOverlay("VRCMicOverlayKeyHello", "VRCMicOverlay", ref overlayHandle);
+            OpenVR.Overlay.SetOverlayTransformAbsolute(overlayHandle, ETrackingUniverseOrigin.TrackingUniverseStanding, ref txform);
+
+            OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath);
+            OpenVR.Overlay.ShowOverlay(overlayHandle);
+            OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE);
+            OpenVR.Overlay.SetOverlayAlpha(overlayHandle, (float)_iconAlphaFactorCurrent);
 
             // Run at display frequency 
             _updateRate = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
@@ -226,7 +232,7 @@ namespace Raz.VRCMicOverlay
 
                                     if (_muteState == MuteState.MUTED)
                                     {
-                                        vr.SetOverlayTextureFromFile(overlay, mutedIconPath);
+                                        OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath);
 
                                         _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
 
@@ -237,7 +243,7 @@ namespace Raz.VRCMicOverlay
                                     }
                                     else
                                     {
-                                        vr.SetOverlayTextureFromFile(overlay, unmutedIconPath);
+                                        OpenVR.Overlay.SetOverlayFromFile(overlayHandle, unmutedIconPath);
 
                                         // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
                                         _iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
@@ -345,9 +351,10 @@ namespace Raz.VRCMicOverlay
                         iconAlphaFactorSetting = 0.0f;
                     }
 
-                    vr.SetOverlayTransform(overlay, CalculateIconTransform(vr));
-                    vr.SetOverlayWidth(overlay, Config.ICON_SIZE * _iconScaleFactorCurrent);
-                    vr.SetOverlayAlpha(overlay, iconAlphaFactorSetting);
+                    var transform = CalculateIconTransform();
+                    OpenVR.Overlay.SetOverlayTransformAbsolute(overlayHandle, ETrackingUniverseOrigin.TrackingUniverseStanding, ref transform);
+                    OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * _iconScaleFactorCurrent);
+                    OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting);
                 }
 
                 // Give up the rest of our time slice to anything else that needs to run
@@ -411,11 +418,14 @@ namespace Raz.VRCMicOverlay
             _deviceMicLevel = peakValue / maxValue;
         }
 
-        private static HmdMatrix34_t CalculateIconTransform(EasyOpenVRSingleton vr)
+        private static HmdMatrix34_t CalculateIconTransform()
         {
             const double RAD_TO_DEG = 180 / Math.PI;
 
-            var transform = vr.GetDeviceToAbsoluteTrackingPose()[0].mDeviceToAbsoluteTracking; // Device 0 should *always* be the hmd
+            TrackedDevicePose_t[] trackedDevicePoses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
+            OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0.0f, trackedDevicePoses);
+
+            var transform = trackedDevicePoses[0].mDeviceToAbsoluteTracking; // Device 0 should *always* be the hmd
             var pOffset = new HmdVector3_t
             {
                 v0 = Config.ICON_OFFSET_X,
