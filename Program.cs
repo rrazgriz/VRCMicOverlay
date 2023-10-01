@@ -194,6 +194,10 @@ namespace Raz.VRCMicOverlay
 
             Console.WriteLine("All Set up! Listening...");
 
+#if DEBUG
+            Console.WriteLine("Running in DEBUG mode!");
+#endif
+
             // Main Program Loop
             while (true)
             {
@@ -346,10 +350,12 @@ namespace Raz.VRCMicOverlay
                     float maxAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
                     float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, _iconAlphaFactorCurrent));
 
+#if !DEBUG // Always show when debugging
                     if (CHECK_IF_VRC_IS_RUNNING && !_isVRCRunning)
                     {
                         iconAlphaFactorSetting = 0.0f;
                     }
+#endif
 
                     var transform = CalculateIconTransform();
                     OpenVR.Overlay.SetOverlayTransformAbsolute(overlayHandle, ETrackingUniverseOrigin.TrackingUniverseStanding, ref transform);
