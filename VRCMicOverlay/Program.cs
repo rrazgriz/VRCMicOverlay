@@ -3,16 +3,11 @@ using System.Text.Json;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Numerics;
+using System.Reflection;
 
 using Valve.VR;
 using NAudio.Wave;
 using VRC.OSCQuery;
-using System.IO;
-using System.Reflection.Metadata;
-
-// Uses code from the following:
-// EasyOpenVR, by BOLL7708 (license pending) : https://github.com/BOLL7708/EasyOpenVR
-// Av3Emulator (SimpleOSC), by Lyuma (MIT): https://github.com/lyuma/Av3Emulator/
 
 namespace Raz.VRCMicOverlay
 {
@@ -83,7 +78,7 @@ namespace Raz.VRCMicOverlay
         const float PROCESS_CHECK_INTERVAL = 5.0f;
         const bool CHECK_IF_VRC_IS_RUNNING = true;
 
-        static Configuration Config;
+        static Configuration Config = new();
 
         static bool _isVRCRunning = false;
 
@@ -110,13 +105,11 @@ namespace Raz.VRCMicOverlay
                 {
                     Console.WriteLine($"Exception caught while reading {SETTINGS_FILENAME}, using defaults");
                     Console.WriteLine(ex.ToString());
-                    Config = new Configuration();
                 }
             }
             else
             {
                 Console.WriteLine($"No settings file found at {SETTINGS_FILENAME}, using defaults");
-                Config = new Configuration();
                 string jsonString = JsonSerializer.Serialize(Config, options);
                 File.WriteAllText(SETTINGS_FILENAME, jsonString);
             }
@@ -125,17 +118,19 @@ namespace Raz.VRCMicOverlay
             Console.WriteLine(JsonSerializer.Serialize(Config, options));
 
             // Texture setup
-            string unmutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_IMG_MIC_UNMUTED });
-            string mutedIconPath = Path.Combine(new string[] { Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Config.FILENAME_IMG_MIC_MUTED });
+            string executablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) ?? "";
+            string unmutedIconPath = Path.Combine(new string[] { executablePath, Config.FILENAME_IMG_MIC_UNMUTED });
+            string mutedIconPath = Path.Combine(new string[] { executablePath, Config.FILENAME_IMG_MIC_MUTED });
 
             // OpenVR Setup
-            var error = new ETrackedPropertyError(); // Dummy
+            var error = new ETrackedPropertyError();
+            var initError = EVRInitError.Unknown;
+
             var ovrApplicationType = EVRApplicationType.VRApplication_Overlay;
-            EVRInitError initError = EVRInitError.Unknown;
             OpenVR.InitInternal(ref initError, ovrApplicationType);
 
             ulong overlayHandle = 0;
-            OpenVR.Overlay.CreateOverlay("VRCMicOverlayKeyHello", "VRCMicOverlay", ref overlayHandle);
+            OpenVR.Overlay.CreateOverlay("VRCMicOverlayKey", "VRCMicOverlay", ref overlayHandle);
 
             Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
             var offsetMatrix = Matrix4x4.CreateTranslation(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
@@ -389,9 +384,9 @@ namespace Raz.VRCMicOverlay
         {
             Console.WriteLine("\nAudio Device Selection:");
             int deviceID = -1;
-            for (int i = 0; i < NAudio.Wave.WaveInEvent.DeviceCount; i++)
+            for (int i = 0; i < WaveInEvent.DeviceCount; i++)
             {
-                var deviceCapabilities = NAudio.Wave.WaveInEvent.GetCapabilities(i);
+                var deviceCapabilities = WaveInEvent.GetCapabilities(i);
                 string deviceName = deviceCapabilities.ProductName;
                 if (deviceName.StartsWith(Config.AUDIO_DEVICE_STARTS_WITH) && Config.AUDIO_DEVICE_STARTS_WITH != "")
                 {
@@ -407,10 +402,10 @@ namespace Raz.VRCMicOverlay
             Console.WriteLine();
             if(deviceID < 0) Console.WriteLine($"Audio Device \"{Config.AUDIO_DEVICE_STARTS_WITH}\" not matched, using default recording device.\n");
 
-            var waveIn = new NAudio.Wave.WaveInEvent
+            var waveIn = new WaveInEvent
             {
                 DeviceNumber = deviceID,
-                WaveFormat = new NAudio.Wave.WaveFormat(rate: 44100, bits: 16, channels: 2),
+                WaveFormat = new WaveFormat(rate: 44100, bits: 16, channels: 2),
                 BufferMilliseconds = 50
             };
 
@@ -418,7 +413,7 @@ namespace Raz.VRCMicOverlay
             waveIn.StartRecording();
         }
 
-        private static void CalculatePeakMicLevel(object sender, NAudio.Wave.WaveInEventArgs args)
+        private static void CalculatePeakMicLevel(object sender, WaveInEventArgs args)
         {
             const float maxValue = 32767;
             const int bytesPerSample = 2;
