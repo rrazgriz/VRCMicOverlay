@@ -43,7 +43,7 @@ namespace Raz.VRCMicOverlay
         public string FILENAME_IMG_MIC_UNMUTED = "microphone-unmuted.png"; // Should probably only be png
         public string FILENAME_IMG_MIC_MUTED = "microphone-muted.png";
 
-        public bool USE_LEGACY_OSC = true; // Will use OSCQuery otherwise
+        public bool USE_LEGACY_OSC = false; // Will use OSCQuery otherwise
         public int LEGACY_OSC_LISTEN_PORT = 9001;
     }
 
@@ -130,7 +130,7 @@ namespace Raz.VRCMicOverlay
             OpenVR.InitInternal(ref initError, ovrApplicationType);
 
             ulong overlayHandle = 0;
-            OpenVR.Overlay.CreateOverlay("VRCMicOverlayKey", "VRCMicOverlay", ref overlayHandle);
+            OpenVR.Overlay.CreateOverlay("VRCMicOverlay", "VRCMicOverlay", ref overlayHandle);
 
             Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
             var offsetMatrix = Matrix4x4.CreateTranslation(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
