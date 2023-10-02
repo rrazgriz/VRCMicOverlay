@@ -49,9 +49,13 @@ namespace Raz.VRCMicOverlay
 
     internal class Program
     {
+        static readonly string executablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) ?? "";
+
         const string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf"; // OSC Parameter Path
         const string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
-        static string SETTINGS_FILENAME = "settings.json";
+        const string SETTINGS_FILENAME = "settings.json";
+
+        static string settingsPath = SETTINGS_FILENAME;
 
         // Global State
         static float _iconScaleFactorCurrent = 1.0f;
@@ -83,42 +87,42 @@ namespace Raz.VRCMicOverlay
         static bool _isVRCRunning = false;
 
         static void Main(string[] args)
-        {
+        {   
             Console.WriteLine("Starting Microphone Overlay...");
 
             var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
 
             // Settings
-            if (File.Exists(SETTINGS_FILENAME))
+            settingsPath = Path.Combine(new string[] { executablePath, SETTINGS_FILENAME });
+            if (File.Exists(settingsPath))
             {
                 try
                 {
-                    string jsonString = File.ReadAllText(SETTINGS_FILENAME);
+                    string jsonString = File.ReadAllText(settingsPath);
                     Config = JsonSerializer.Deserialize<Configuration>(jsonString, options) ?? new Configuration();
-                    Console.WriteLine($"Using settings from {SETTINGS_FILENAME}");
+                    Console.WriteLine($"Using settings from {settingsPath}");
 
                     // Write config back, in case it's been updated
                     string newConfigString = JsonSerializer.Serialize(Config, options);
-                    File.WriteAllText(SETTINGS_FILENAME, newConfigString);
+                    File.WriteAllText(settingsPath, newConfigString);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Exception caught while reading {SETTINGS_FILENAME}, using defaults");
+                    Console.WriteLine($"Exception caught while reading {settingsPath}, using defaults");
                     Console.WriteLine(ex.ToString());
                 }
             }
             else
             {
-                Console.WriteLine($"No settings file found at {SETTINGS_FILENAME}, using defaults");
+                Console.WriteLine($"No settings file found at {settingsPath}, using defaults");
                 string jsonString = JsonSerializer.Serialize(Config, options);
-                File.WriteAllText(SETTINGS_FILENAME, jsonString);
+                File.WriteAllText(settingsPath, jsonString);
             }
 
             Console.WriteLine("Configuration:");
             Console.WriteLine(JsonSerializer.Serialize(Config, options));
 
             // Texture setup
-            string executablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) ?? "";
             string unmutedIconPath = Path.Combine(new string[] { executablePath, Config.FILENAME_IMG_MIC_UNMUTED });
             string mutedIconPath = Path.Combine(new string[] { executablePath, Config.FILENAME_IMG_MIC_MUTED });
 
@@ -154,8 +158,8 @@ namespace Raz.VRCMicOverlay
             _updateRate = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
 
             // Sound setup
-            System.Media.SoundPlayer sfxMute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_MUTED);
-            System.Media.SoundPlayer sfxUnmute = new System.Media.SoundPlayer(Config.FILENAME_SFX_MIC_UNMUTED);
+            System.Media.SoundPlayer sfxMute = new(Config.FILENAME_SFX_MIC_MUTED);
+            System.Media.SoundPlayer sfxUnmute = new(Config.FILENAME_SFX_MIC_UNMUTED);
             SetVolume(Config.CUSTOM_MIC_SFX_VOLUME);
 
             // OSC Setup
