@@ -137,17 +137,10 @@ namespace Raz.VRCMicOverlay
             OpenVR.Overlay.CreateOverlay("VRCMicOverlay", "VRCMicOverlay", ref overlayHandle);
 
             Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
-            var offsetMatrix = Matrix4x4.CreateTranslation(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
-            var rotMatrix = Matrix4x4.Identity;
 
-            // A "World" matrix is created incorproating our offset; this skews the icon so it always points toward the head
-            rotMatrix = Matrix4x4.CreateWorld(Vector3.Zero, Vector3.Normalize(offsetVector), new Vector3(0, -1, 0));
-            // For some reason it's upside down so let's just rotate it around and call it good
-            rotMatrix = Matrix4x4.Multiply(rotMatrix, Matrix4x4.CreateFromAxisAngle(new Vector3(0, 0, 1), MathF.PI));
-            var relativeTransform = Matrix4x4.Multiply(rotMatrix, offsetMatrix);
-            var relativeTransformOVR = relativeTransform.ToHmdMatrix34_t();
+            var relativeTransform = GetIconTransform(offsetVector).ToHmdMatrix34_t();
             // Set and forget, this locks the overlay to the head using a specified matrix
-            OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransformOVR);
+            OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform);
 
             OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath);
             OpenVR.Overlay.ShowOverlay(overlayHandle);
@@ -376,6 +369,19 @@ namespace Raz.VRCMicOverlay
                 // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.sleep
                 Thread.Sleep(0);
             }
+        }
+
+        private static Matrix4x4 GetIconTransform(Vector3 offsetVector)
+        {
+            // A "World" matrix is created incorproating our offset; this skews the icon so it always points toward the head
+            var rotMatrix = Matrix4x4.CreateWorld(Vector3.Zero, Vector3.Normalize(offsetVector), new Vector3(0, -1, 0));
+            
+            // For some reason it's upside down so let's just rotate it around and call it good
+            rotMatrix = Matrix4x4.Multiply(rotMatrix, Matrix4x4.CreateFromAxisAngle(new Vector3(0, 0, 1), MathF.PI));
+            
+            var offsetMatrix = Matrix4x4.CreateTranslation(offsetVector);
+            var relativeTransform = Matrix4x4.Multiply(rotMatrix, offsetMatrix);
+            return relativeTransform;
         }
 
         private static float Lerp(float a, float b, float t) => b * t + a * (1f - t);
