@@ -42,7 +42,9 @@
                 "publish",
                 "${workspaceFolder}/VRCMicOverlay.sln",
                 "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
+                "/consoleloggerparameters:NoSummary",
+                "-c",
+                "Release"
             ],
             "problemMatcher": "$msCompile"
         },
