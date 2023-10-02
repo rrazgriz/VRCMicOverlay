@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Numerics;
 
 using Valve.VR;
 using NAudio.Wave;
@@ -133,11 +134,21 @@ namespace Raz.VRCMicOverlay
             EVRInitError initError = EVRInitError.Unknown;
             OpenVR.InitInternal(ref initError, ovrApplicationType);
 
-            //var overlayHandle = vr.CreateOverlay("VRCMicOverlayKeyHello", "VRCMicOverlay", CalculateIconTransform(vr));
             ulong overlayHandle = 0;
-            var txform = CalculateIconTransform();
             OpenVR.Overlay.CreateOverlay("VRCMicOverlayKeyHello", "VRCMicOverlay", ref overlayHandle);
-            OpenVR.Overlay.SetOverlayTransformAbsolute(overlayHandle, ETrackingUniverseOrigin.TrackingUniverseStanding, ref txform);
+
+            Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
+            var offsetMatrix = Matrix4x4.CreateTranslation(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
+            var rotMatrix = Matrix4x4.Identity;
+
+            // A "World" matrix is created incorproating our offset; this skews the icon so it always points toward the head
+            rotMatrix = Matrix4x4.CreateWorld(Vector3.Zero, Vector3.Normalize(offsetVector), new Vector3(0, -1, 0));
+            // For some reason it's upside down so let's just rotate it around and call it good
+            rotMatrix = Matrix4x4.Multiply(rotMatrix, Matrix4x4.CreateFromAxisAngle(new Vector3(0, 0, 1), MathF.PI));
+            var relativeTransform = Matrix4x4.Multiply(rotMatrix, offsetMatrix);
+            var relativeTransformOVR = relativeTransform.ToHmdMatrix34_t();
+            // Set and forget, this locks the overlay to the head using a specified matrix
+            OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransformOVR);
 
             OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath);
             OpenVR.Overlay.ShowOverlay(overlayHandle);
@@ -357,8 +368,6 @@ namespace Raz.VRCMicOverlay
                     }
 #endif
 
-                    var transform = CalculateIconTransform();
-                    OpenVR.Overlay.SetOverlayTransformAbsolute(overlayHandle, ETrackingUniverseOrigin.TrackingUniverseStanding, ref transform);
                     OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * _iconScaleFactorCurrent);
                     OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting);
                 }
@@ -424,20 +433,6 @@ namespace Raz.VRCMicOverlay
             _deviceMicLevel = peakValue / maxValue;
         }
     
-        private static HmdMatrix34_t CalculateIconTransform() 
-        {
-            var trackedDevicePoses = new TrackedDevicePose_t[1];
-            OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0.0f, trackedDevicePoses);
-            
-            var rX = Math.Tan(Config.ICON_OFFSET_Y / Math.Sqrt(Config.ICON_OFFSET_X * Config.ICON_OFFSET_X + Config.ICON_OFFSET_Z * Config.ICON_OFFSET_Z));
-            var rY = Math.Tan(Config.ICON_OFFSET_Z / Config.ICON_OFFSET_X);
-
-            var transform = trackedDevicePoses[0].mDeviceToAbsoluteTracking
-                .Multiply(MatrixHelper.Translate(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z))
-                .Multiply(MatrixHelper.Rotate(rX, -rY)); // Rotate the icon to point at the head
-            return transform;
-        }
-
         private static bool IsProcessRunning(string processName)
         {
             Process[] pname = Process.GetProcessesByName(processName);
@@ -486,52 +481,67 @@ namespace Raz.VRCMicOverlay
         }
     }
 
-    public static class MatrixHelper 
+    // From https://github.com/OVRTools/OVRSharp
+    // Under the MIT license (Copyright 2020-2021 TJ Horner)
+    public static class MatrixExtension
     {
-        public static HmdMatrix34_t Multiply(this HmdMatrix34_t @this, HmdMatrix34_t other) =>
-            new() 
-            {
-                m0 = @this.m0 * other.m0 + @this.m1 * other.m4 + @this.m2 * other.m8,
-                m1 = @this.m0 * other.m1 + @this.m1 * other.m5 + @this.m2 * other.m9,
-                m2 = @this.m0 * other.m2 + @this.m1 * other.m6 + @this.m2 * other.m10,
-                m3 = @this.m0 * other.m3 + @this.m1 * other.m7 + @this.m2 * other.m11 + @this.m3,
-                m4 = @this.m4 * other.m0 + @this.m5 * other.m4 + @this.m6 * other.m8,
-                m5 = @this.m4 * other.m1 + @this.m5 * other.m5 + @this.m6 * other.m9,
-                m6 = @this.m4 * other.m2 + @this.m5 * other.m6 + @this.m6 * other.m10,
-                m7 = @this.m4 * other.m3 + @this.m5 * other.m7 + @this.m6 * other.m11 + @this.m7,
-                m8 = @this.m8 * other.m0 + @this.m9 * other.m4 + @this.m10 * other.m8,
-                m9 = @this.m8 * other.m1 + @this.m9 * other.m5 + @this.m10 * other.m9,
-                m10 = @this.m8 * other.m2 + @this.m9 * other.m6 + @this.m10 * other.m10,
-                m11 = @this.m8 * other.m3 + @this.m9 * other.m7 + @this.m10 * other.m11 + @this.m11,
-            };
-
-        public static HmdMatrix34_t Translate(float tX, float tY, float tZ) =>
-            new() 
-            {
-                m0 = 1,
-                m5 = 1,
-                m10 = 1,
-                m3 = tX,
-                m7 = tY,
-                m11 = tZ,
-            };
-
-        public static HmdMatrix34_t Rotate(double rX, double rY) 
+        /// <summary>
+        /// Converts a <see cref="Matrix4x4"/> to a <see cref="HmdMatrix34_t"/>.
+        /// <br/>
+        /// <br/>
+        /// From: <br/>
+        /// 11 12 13 14 <br/>
+        /// 21 22 23 24 <br/>
+        /// 31 32 33 34 <br/>
+        /// 41 42 43 44
+        /// <br/><br/>
+        /// To: <br/>
+        /// 11 12 13 41 <br/>
+        /// 21 22 23 42 <br/>
+        /// 31 32 33 43
+        /// </summary>
+        public static HmdMatrix34_t ToHmdMatrix34_t(this Matrix4x4 matrix)
         {
-            var cX = Math.Cos(rX);
-            var sX = Math.Sin(rX);
-            var cY = Math.Cos(rY);
-            var sY = Math.Sin(rY);
-
-            return new HmdMatrix34_t {
-                m0 = (float)cY,
-                m2 = (float)sY,
-                m5 = (float)cX,
-                m6 = (float)-sX,
-                m8 = (float)-sY,
-                m9 = (float)sX,
-                m10 = (float)cX * (float)cY,
+            return new HmdMatrix34_t()
+            {
+                m0 = matrix.M11,
+                m1 = matrix.M12,
+                m2 = matrix.M13,
+                m3 = matrix.M41,
+                m4 = matrix.M21,
+                m5 = matrix.M22,
+                m6 = matrix.M23,
+                m7 = matrix.M42,
+                m8 = matrix.M31,
+                m9 = matrix.M32,
+                m10 = matrix.M33,
+                m11 = matrix.M43,
             };
+        }
+
+        /// <summary>
+        /// Converts a <see cref="HmdMatrix34_t"/> to a <see cref="Matrix4x4"/>.
+        /// <br/>
+        /// <br/>
+        /// From: <br/>
+        /// 11 12 13 14 <br/>
+        /// 21 22 23 24 <br/>
+        /// 31 32 33 34
+        /// <br/><br/>
+        /// To: <br/>
+        /// 11 12 13 XX <br/>
+        /// 21 22 23 XX <br/>
+        /// 31 32 33 XX <br/>
+        /// 14 24 34 XX
+        /// </summary>
+        public static Matrix4x4 ToMatrix4x4(this HmdMatrix34_t matrix)
+        {
+            return new Matrix4x4(
+                matrix.m0, matrix.m1, matrix.m2, 0,
+                matrix.m4, matrix.m5, matrix.m6, 0,
+                matrix.m8, matrix.m9, matrix.m10, 0,
+                matrix.m3, matrix.m7, matrix.m11, 1
+            );
         }
     }
 }
