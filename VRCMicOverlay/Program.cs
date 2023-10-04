@@ -49,7 +49,7 @@ namespace Raz.VRCMicOverlay
 
     internal class Program
     {
-        static readonly string executablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) ?? "";
+        static string executablePath = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? "";
 
         const string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf"; // OSC Parameter Path
         const string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
