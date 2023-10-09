@@ -14,7 +14,7 @@
             "args": [],
             "cwd": "${workspaceFolder}/VRCMicOverlay/bin/Debug/net6.0/win-x64/",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "internalConsole",
+            "console": "externalTerminal",
             "stopAtEntry": false
         },
         {
