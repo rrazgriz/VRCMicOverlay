@@ -90,8 +90,14 @@ namespace Raz.VRCMicOverlay
         static bool _isVRCRunning = false;
 
         static void Main(string[] args)
-        {   
+        {
             Console.WriteLine("Starting Microphone Overlay...");
+
+#if !DEBUG // This gets annoying when developing
+            // Minimize console window (6 corresponds to a native enum or something that means minimize)
+            ShowWindow(GetConsoleWindow(), 6);
+            Console.WriteLine("Minimizing Window");
+#endif
 
             var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
 
@@ -190,9 +196,6 @@ namespace Raz.VRCMicOverlay
 
             // Sound device setup, for listening to audio levels while muted (VRC doesn't send the Voice parameter when muted)
             SetupMicListener();
-
-            // Minimize console window (6 corresponds to a native enum or something that means minimize)
-            ShowWindow(GetConsoleWindow(), 6);
 
             CheckIfVRCIsRunning(true);
             processCheckTimer.Start();
