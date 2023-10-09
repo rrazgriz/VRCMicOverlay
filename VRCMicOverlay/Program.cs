@@ -57,6 +57,9 @@ namespace Raz.VRCMicOverlay
 
         static string settingsPath = SETTINGS_FILENAME;
 
+        const string OVERLAY_KEY = "one.raz.vrcmicoverlay";
+        const string OVERLAY_NAME = "VRCMicOverlay";
+
         // Global State
         static float _iconScaleFactorCurrent = 1.0f;
         static float _iconScaleFactorTarget = 1.0f;
@@ -134,18 +137,18 @@ namespace Raz.VRCMicOverlay
             OpenVR.InitInternal(ref initError, ovrApplicationType);
 
             ulong overlayHandle = 0;
-            OpenVR.Overlay.CreateOverlay("VRCMicOverlay", "VRCMicOverlay", ref overlayHandle);
+            EVROverlayErrorHandler(OpenVR.Overlay.CreateOverlay(OVERLAY_KEY, OVERLAY_NAME, ref overlayHandle));
 
             Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
 
             var relativeTransform = GetIconTransform(offsetVector).ToHmdMatrix34_t();
             // Set and forget, this locks the overlay to the head using a specified matrix
-            OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform);
+            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform));
 
-            OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath);
-            OpenVR.Overlay.ShowOverlay(overlayHandle);
-            OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE);
-            OpenVR.Overlay.SetOverlayAlpha(overlayHandle, (float)_iconAlphaFactorCurrent);
+            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
+            EVROverlayErrorHandler(OpenVR.Overlay.ShowOverlay(overlayHandle));
+            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
+            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, (float)_iconAlphaFactorCurrent));
 
             // Run at display frequency 
             _updateRate = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
@@ -239,7 +242,7 @@ namespace Raz.VRCMicOverlay
 
                                     if (_muteState == MuteState.MUTED)
                                     {
-                                        OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath);
+                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
 
                                         _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
 
@@ -250,7 +253,7 @@ namespace Raz.VRCMicOverlay
                                     }
                                     else
                                     {
-                                        OpenVR.Overlay.SetOverlayFromFile(overlayHandle, unmutedIconPath);
+                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, unmutedIconPath));
 
                                         // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
                                         _iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
@@ -360,8 +363,8 @@ namespace Raz.VRCMicOverlay
                     }
 #endif
 
-                    OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * _iconScaleFactorCurrent);
-                    OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting);
+                    EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * _iconScaleFactorCurrent));
+                    EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting));
                 }
 
                 // Give up the rest of our time slice to anything else that needs to run
@@ -389,6 +392,16 @@ namespace Raz.VRCMicOverlay
 
         private static double Frac(double v) => v - Math.Truncate(v);
         private static double PingPong(double v) => (Math.Abs(Frac((v) / (2.0)) * 2.0 - 1) - 0.5) * 2;
+
+        private static EVROverlayError EVROverlayErrorHandler(EVROverlayError error)
+        {
+            if(error != EVROverlayError.None)
+            {
+                Console.WriteLine($"ERROR: {error.ToString()}");
+            }
+
+            return error;
+        }
 
         private static void SetupMicListener()
         {
