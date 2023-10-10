@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Text.Json;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
-using System.Numerics;
-using System.Reflection;
 using System.Text;
+using System.Numerics;
+using System.Text.Json;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 using Valve.VR;
 using NAudio.Wave;
@@ -18,16 +17,16 @@ namespace Raz.VRCMicOverlay
 #region Constants
 
         static string executablePath = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? "";
+        
+        const string SETTINGS_FILENAME = "settings.json"; // User-modifiable settings, generated
+        const string MANIFEST_FILENAME = "vrcmicoverlay.vrmanifest"; // Used to set up SteamVR autostart
 
-        const string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf"; // OSC Parameter Path
+        const string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf";
         const string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
-        const string SETTINGS_FILENAME = "settings.json";
 
         const string APPLICATION_KEY = "one.raz.vrcmicoverlay";
         const string OVERLAY_KEY = "one.raz.vrcmicoverlay.mic";
         const string OVERLAY_NAME = "VRCMicOverlay";
-        
-        const string MANIFEST_FILENAME = "vrcmicoverlay.vrmanifest";
 
 #endregion
 
