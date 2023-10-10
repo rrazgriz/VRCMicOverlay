@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
+using System.Text;
 
 using Valve.VR;
 using NAudio.Wave;
@@ -57,8 +58,11 @@ namespace Raz.VRCMicOverlay
 
         static string settingsPath = SETTINGS_FILENAME;
 
-        const string OVERLAY_KEY = "one.raz.vrcmicoverlay";
+        const string APPLICATION_KEY = "one.raz.vrcmicoverlay";
+        const string OVERLAY_KEY = "one.raz.vrcmicoverlay.mic";
         const string OVERLAY_NAME = "VRCMicOverlay";
+        
+        const string MANIFEST_FILENAME = "vrcmicoverlay.vrmanifest";
 
         // Global State
         static float _iconScaleFactorCurrent = 1.0f;
@@ -141,6 +145,8 @@ namespace Raz.VRCMicOverlay
 
             var ovrApplicationType = EVRApplicationType.VRApplication_Overlay;
             OpenVR.InitInternal(ref initError, ovrApplicationType);
+
+            SetupOpenVRAutostart();
 
             ulong overlayHandle = 0;
             EVROverlayErrorHandler(OpenVR.Overlay.CreateOverlay(OVERLAY_KEY, OVERLAY_NAME, ref overlayHandle));
@@ -396,14 +402,96 @@ namespace Raz.VRCMicOverlay
         private static double Frac(double v) => v - Math.Truncate(v);
         private static double PingPong(double v) => (Math.Abs(Frac((v) / (2.0)) * 2.0 - 1) - 0.5) * 2;
 
+        private static EVRApplicationError EVRApplicationErrorHandler(EVRApplicationError error)
+        {
+            if(error != EVRApplicationError.None)
+            {
+                Console.WriteLine($"STEAMVR APPLICATION ERROR: {error.ToString()}");
+            }
+
+            return error;
+        }
+
         private static EVROverlayError EVROverlayErrorHandler(EVROverlayError error)
         {
             if(error != EVROverlayError.None)
             {
-                Console.WriteLine($"ERROR: {error.ToString()}");
+                Console.WriteLine($"STEAMVR OVERLAY ERROR: {error.ToString()}");
             }
 
             return error;
+        }
+
+        // These classes are modified from https://github.com/ValveSoftware/steamvr_unity_plugin/
+        // Used with permission under the BSD 3-Clause license
+        public class SteamVR_ManifestFile
+        {
+            public List<SteamVR_ManifestFile_Application> applications;
+        }
+
+        public class SteamVR_ManifestFile_Application
+        {
+            public string app_key;
+            public string launch_type;
+            public string binary_path_windows;
+            public bool is_dashboard_overlay;
+            public Dictionary<string, SteamVR_ManifestFile_ApplicationString> strings = new Dictionary<string, SteamVR_ManifestFile_ApplicationString>();
+        }
+
+        public class SteamVR_ManifestFile_ApplicationString
+        {
+            public string name;
+            public string description;
+        }
+
+        private static void SetupOpenVRAutostart()
+        {
+            string manifestPath = Path.Combine(executablePath, MANIFEST_FILENAME);
+
+            var manifest = new SteamVR_ManifestFile();
+            var manifestApplication = new SteamVR_ManifestFile_Application
+            {
+                app_key = APPLICATION_KEY,
+                launch_type = "binary",
+                binary_path_windows = "VRCMicOverlay.exe",
+                is_dashboard_overlay = true
+            };
+            var strings = new SteamVR_ManifestFile_ApplicationString()
+            {
+                name = OVERLAY_NAME,
+                description = "OpenVR Overlay to replace the built in VRChat HUD mic icon"
+            };
+            manifestApplication.strings.Add("en_us", strings);
+            manifest.applications = new List<SteamVR_ManifestFile_Application> {manifestApplication};
+            
+            var serializerOptions = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
+
+            string manifestJsonString = JsonSerializer.Serialize(manifest, serializerOptions);
+            File.WriteAllText(manifestPath, manifestJsonString);
+
+            // Set up autolaunch
+            if (!OpenVR.Applications.IsApplicationInstalled(APPLICATION_KEY))
+            {
+                // Add our manifest first
+                EVRApplicationErrorHandler(OpenVR.Applications.AddApplicationManifest(manifestPath, false));
+                EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(APPLICATION_KEY, true));
+            }
+            else
+            {
+                // Check if the autolaunch is set up with the current program location
+                bool isAutostartEnabled = OpenVR.Applications.GetApplicationAutoLaunch(APPLICATION_KEY);
+                StringBuilder binaryPath = new();
+                EVRApplicationError dummyApplicationError = EVRApplicationError.None;
+                OpenVR.Applications.GetApplicationPropertyString(APPLICATION_KEY, EVRApplicationProperty.BinaryPath_String, binaryPath, 255, ref dummyApplicationError);
+                string binaryPathTrimmed = Path.GetDirectoryName(binaryPath.ToString());
+                
+                if (!String.Equals(binaryPathTrimmed, executablePath, StringComparison.Ordinal))
+                {
+                    EVRApplicationErrorHandler(OpenVR.Applications.RemoveApplicationManifest(Path.Combine($"{binaryPathTrimmed}", MANIFEST_FILENAME)));
+                    EVRApplicationErrorHandler(OpenVR.Applications.AddApplicationManifest(manifestPath, false));
+                    EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(APPLICATION_KEY, isAutostartEnabled));
+                }
+            }
         }
 
         private static void SetupMicListener()
