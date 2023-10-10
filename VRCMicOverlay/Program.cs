@@ -12,57 +12,26 @@ using VRC.OSCQuery;
 
 namespace Raz.VRCMicOverlay
 {
-    internal class Configuration
-    {
-        public float ICON_MUTED_MAX_ALPHA = 0.50f;
-        public float ICON_MUTED_MIN_ALPHA = 0.00f;
-        public float ICON_UNMUTED_MAX_ALPHA = 0.75f;
-        public float ICON_UNMUTED_MIN_ALPHA = 0.05f;
-
-        public bool USE_CUSTOM_MIC_SFX = false;
-        public float CUSTOM_MIC_SFX_VOLUME = 0.65f;
-
-        // VRChat doesn't output the Voice parameter while muted, so we have to read from a device ourselves
-        // This adds a lot of dependencies so considering just not doing this
-        public string AUDIO_DEVICE_STARTS_WITH = "";
-        public float MUTED_MIC_THRESHOLD = 0.1f;
-
-        public float ICON_CHANGE_SCALE_FACTOR = 1.25f; // Scale icon by this factor when changing between mute/unmute
-        public float ICON_SIZE = 0.05f; // Size, square, of icon overlay (in meters)
-        public float ICON_OFFSET_X = -0.37f; // Distance left/right of head center axis (negative is left)
-        public float ICON_OFFSET_Y = -0.26f; // Distance above/below head axis (negative is in front)
-        public float ICON_OFFSET_Z = -0.92f; // Distance in front of the head (negative is in front)
-
-        public bool RESTART_FADE_TIMER_ON_STATE_CHANGE = true; // Whether to restart the fade timer when changing from mute/unmute
-        public float MIC_MUTED_FADE_START    = 1.0f; // Time to start fading (seconds)
-        public float MIC_MUTED_FADE_PERIOD   = 2.0f; // Time to fade to minimum
-        public float MIC_UNMUTED_FADE_START  = 0.3f;
-        public float MIC_UNMUTED_FADE_PERIOD = 1.0f;
-        
-        public string FILENAME_SFX_MIC_UNMUTED = "sfx-unmute.wav"; // Must be wav
-        public string FILENAME_SFX_MIC_MUTED = "sfx-mute.wav";
-        public string FILENAME_IMG_MIC_UNMUTED = "microphone-unmuted.png"; // Should probably only be png
-        public string FILENAME_IMG_MIC_MUTED = "microphone-muted.png";
-
-        public bool USE_LEGACY_OSC = false; // Will use OSCQuery otherwise
-        public int LEGACY_OSC_LISTEN_PORT = 9001;
-    }
-
     internal class Program
     {
+
+#region Constants
+
         static string executablePath = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? "";
 
         const string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf"; // OSC Parameter Path
         const string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
         const string SETTINGS_FILENAME = "settings.json";
 
-        static string settingsPath = SETTINGS_FILENAME;
-
         const string APPLICATION_KEY = "one.raz.vrcmicoverlay";
         const string OVERLAY_KEY = "one.raz.vrcmicoverlay.mic";
         const string OVERLAY_NAME = "VRCMicOverlay";
         
         const string MANIFEST_FILENAME = "vrcmicoverlay.vrmanifest";
+
+#endregion
+
+#region State
 
         // Global State
         static float _iconScaleFactorCurrent = 1.0f;
@@ -93,6 +62,8 @@ namespace Raz.VRCMicOverlay
 
         static bool _isVRCRunning = false;
 
+#endregion
+
         static void Main(string[] args)
         {
             Console.WriteLine("Starting Microphone Overlay...");
@@ -106,7 +77,7 @@ namespace Raz.VRCMicOverlay
             var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
 
             // Settings
-            settingsPath = Path.Combine(new string[] { executablePath, SETTINGS_FILENAME });
+            string settingsPath = Path.Combine(new string[] { executablePath, SETTINGS_FILENAME });
             if (File.Exists(settingsPath))
             {
                 try
@@ -383,6 +354,8 @@ namespace Raz.VRCMicOverlay
             }
         }
 
+#region Math
+
         private static Matrix4x4 GetIconTransform(Vector3 offsetVector)
         {
             // A "World" matrix is created incorproating our offset; this skews the icon so it always points toward the head
@@ -401,6 +374,10 @@ namespace Raz.VRCMicOverlay
 
         private static double Frac(double v) => v - Math.Truncate(v);
         private static double PingPong(double v) => (Math.Abs(Frac((v) / (2.0)) * 2.0 - 1) - 0.5) * 2;
+
+#endregion
+
+#region OpenVR
 
         private static EVRApplicationError EVRApplicationErrorHandler(EVRApplicationError error)
         {
@@ -494,6 +471,10 @@ namespace Raz.VRCMicOverlay
             }
         }
 
+#endregion
+
+#region Sound
+
         private static void SetupMicListener()
         {
             Console.WriteLine("\nAudio Device Selection:");
@@ -541,7 +522,26 @@ namespace Raz.VRCMicOverlay
 
             _deviceMicLevel = peakValue / maxValue;
         }
-    
+
+        // thanks to https://stackoverflow.com/questions/34277066/how-do-i-fade-out-the-audio-of-a-wav-file-using-soundplayer-instead-of-stopping
+        [DllImport("winmm.dll", EntryPoint = "waveOutGetVolume")]
+        private static extern int WaveOutGetVolume(IntPtr hwo, out uint dwVolume);
+
+        [DllImport("winmm.dll", EntryPoint = "waveOutSetVolume")]
+        private static extern int WaveOutSetVolume(IntPtr hwo, uint dwVolume);
+
+        private static int SetVolume(float volume)
+        {
+            float clampedVolume = MathF.Min(MathF.Max(volume, 0f), 1f);
+            ushort channelVolume = (ushort)Lerp(0, ushort.MaxValue, clampedVolume);
+            uint vol = (uint)channelVolume | ((uint)channelVolume << 16);
+            return WaveOutSetVolume(IntPtr.Zero, vol);
+        }
+
+#endregion
+
+#region Windows
+
         private static bool IsProcessRunning(string processName)
         {
             Process[] pname = Process.GetProcessesByName(processName);
@@ -574,83 +574,7 @@ namespace Raz.VRCMicOverlay
         [DllImport("kernel32.dll")]
         static extern IntPtr GetConsoleWindow();
 
-        // thanks to https://stackoverflow.com/questions/34277066/how-do-i-fade-out-the-audio-of-a-wav-file-using-soundplayer-instead-of-stopping
-        [DllImport("winmm.dll", EntryPoint = "waveOutGetVolume")]
-        private static extern int WaveOutGetVolume(IntPtr hwo, out uint dwVolume);
+#endregion
 
-        [DllImport("winmm.dll", EntryPoint = "waveOutSetVolume")]
-        private static extern int WaveOutSetVolume(IntPtr hwo, uint dwVolume);
-
-        private static int SetVolume(float volume)
-        {
-            float clampedVolume = MathF.Min(MathF.Max(volume, 0f), 1f);
-            ushort channelVolume = (ushort)Lerp(0, ushort.MaxValue, clampedVolume);
-            uint vol = (uint)channelVolume | ((uint)channelVolume << 16);
-            return WaveOutSetVolume(IntPtr.Zero, vol);
-        }
-    }
-
-    // From https://github.com/OVRTools/OVRSharp
-    // Under the MIT license (Copyright 2020-2021 TJ Horner)
-    public static class MatrixExtension
-    {
-        /// <summary>
-        /// Converts a <see cref="Matrix4x4"/> to a <see cref="HmdMatrix34_t"/>.
-        /// <br/>
-        /// <br/>
-        /// From: <br/>
-        /// 11 12 13 14 <br/>
-        /// 21 22 23 24 <br/>
-        /// 31 32 33 34 <br/>
-        /// 41 42 43 44
-        /// <br/><br/>
-        /// To: <br/>
-        /// 11 12 13 41 <br/>
-        /// 21 22 23 42 <br/>
-        /// 31 32 33 43
-        /// </summary>
-        public static HmdMatrix34_t ToHmdMatrix34_t(this Matrix4x4 matrix)
-        {
-            return new HmdMatrix34_t()
-            {
-                m0 = matrix.M11,
-                m1 = matrix.M12,
-                m2 = matrix.M13,
-                m3 = matrix.M41,
-                m4 = matrix.M21,
-                m5 = matrix.M22,
-                m6 = matrix.M23,
-                m7 = matrix.M42,
-                m8 = matrix.M31,
-                m9 = matrix.M32,
-                m10 = matrix.M33,
-                m11 = matrix.M43,
-            };
-        }
-
-        /// <summary>
-        /// Converts a <see cref="HmdMatrix34_t"/> to a <see cref="Matrix4x4"/>.
-        /// <br/>
-        /// <br/>
-        /// From: <br/>
-        /// 11 12 13 14 <br/>
-        /// 21 22 23 24 <br/>
-        /// 31 32 33 34
-        /// <br/><br/>
-        /// To: <br/>
-        /// 11 12 13 XX <br/>
-        /// 21 22 23 XX <br/>
-        /// 31 32 33 XX <br/>
-        /// 14 24 34 XX
-        /// </summary>
-        public static Matrix4x4 ToMatrix4x4(this HmdMatrix34_t matrix)
-        {
-            return new Matrix4x4(
-                matrix.m0, matrix.m1, matrix.m2, 0,
-                matrix.m4, matrix.m5, matrix.m6, 0,
-                matrix.m8, matrix.m9, matrix.m10, 0,
-                matrix.m3, matrix.m7, matrix.m11, 1
-            );
-        }
     }
 }
