@@ -8,7 +8,7 @@ on:
 
 env:
   PROJECT_PATH: VRCMicOverlay/VRCMicOverlay.csproj
-  PUBLISH_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/VRCMicOverlay.exe
+  PUBLISH_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/
   ZIP_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/VRCMicOverlay.zip
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
         uses: thedoctor0/zip-release@09336613be18a8208dfa66bd57efafd9e2685657
         with:
           type: "zip"
-          directory: "${{ env.PUBLISH_PATH }}/"
+          directory: "${{ env.PUBLISH_PATH }}"
           filename: "${{env.ZIP_PATH}}"
 
       - name: Make Release
