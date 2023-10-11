@@ -1,14 +1,10 @@
 # VRCMicOverlay
 
-OpenVR Overlay for a custom microphone icon and sounds for VRChat. Uses OSCQuery to eliminate conflicts with other OSC listeners.
+OpenVR Overlay for a custom microphone icon and sounds for VRChat. This was made so I could learn more about SteamVR/OpenVR overlays, and because I wanted more control than the VRChat settings give.
 
-Features:
+Features include icon and sound asset customization, configurable fadeout timers and faded opacity, and more. It also uses OSCQuery to eliminate conflicts with other OSC listeners.
 
-- Icon customization
-- Customize icon fadeout time/amount
-- Use your own mute/unmute sfx
-
-This was made to learn more about SteamVR/OpenVR overlays, and because I wanted more control than the VRChat settings give.
+VRCMicOverlay is a console application that uses a simple program structure, with global state, a basic startup procedure, and a tight inner loop that does only what it needs to. This limits flexibility, but it was easy to get up and running quickly, performs well, and is reliable - I've used this overlay as a full replacement for VRChat's Microphone Icon for hundreds of hours with minimal issues.
 
 ## Usage
 
@@ -29,6 +25,6 @@ If you find other issues, feel free to file a GitHub issue.
 ## Attribution 
 
 - Microphone icon by Dave Gandy (CC-BY): https://www.flaticon.com/free-icon/microphone-black-shape_25682
-- Av3Emulator (SimpleOSC), by Lyuma (MIT): https://github.com/lyuma/Av3Emulator/
+- SimpleOSC (from Av3Emulator), by Lyuma (MIT): https://github.com/lyuma/Av3Emulator/
 - Mute/unmute sound by a deleted user on Freesound (CC0): https://freesound.org/people/deleted_user_7146007/sounds/383659/
 - Others I've forgotten/included via comments
