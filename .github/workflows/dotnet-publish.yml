@@ -9,7 +9,7 @@ on:
 env:
   PROJECT_PATH: VRCMicOverlay/VRCMicOverlay.csproj
   PUBLISH_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/
-  ZIP_PATH: VRCMicOverlay.zip
+  ZIP_FILENAME: VRCMicOverlay
 
 permissions:
   contents: write
@@ -32,20 +32,20 @@ jobs:
       - name: Publish Project
         run: dotnet publish ${{ env.PROJECT_PATH }} -c Release --no-restore
 
+      - run: Copy-Item "README.md" -Destination "${{ env.PUBLISH_PATH }}"
+
       - name: Create Zip File
         uses: thedoctor0/zip-release@09336613be18a8208dfa66bd57efafd9e2685657
         with:
           type: "zip"
           directory: "${{ env.PUBLISH_PATH }}"
           path: "."
-          filename: "../../../../../../${{ env.ZIP_PATH }}"
-
-      - run: Get-Location
-      - run: Get-ChildItem -Recurse -Filter 'VRCMicOverlay.zip'
+          filename: "../../../../../../${{ env.ZIP_FILENAME }}.zip"
+          exclusions: '*.pdb'
 
       - name: Make Release
         uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
         with:
-          name: "VRCMicOverlay ${{ github.ref }}"
-          tag_name: ${{ github.ref }}
-          files: ${{ env.ZIP_PATH }}
+          name: "VRCMicOverlay ${{ github.ref_name }}"
+          tag_name: ${{ github.ref_name }}
+          files: "${{ env.ZIP_FILENAME }}.zip"
