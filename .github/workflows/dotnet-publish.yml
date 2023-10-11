@@ -36,8 +36,9 @@ jobs:
         uses: thedoctor0/zip-release@09336613be18a8208dfa66bd57efafd9e2685657
         with:
           type: "zip"
-          path: "${{ env.PUBLISH_PATH }}"
-          filename: "${{ env.ZIP_PATH }}"
+          directory: "${{ env.PUBLISH_PATH }}"
+          path: "."
+          filename: "../../../../../../${{ env.ZIP_PATH }}"
 
       - run: Get-Location
       - run: Get-ChildItem -Recurse -Filter 'VRCMicOverlay.zip'
