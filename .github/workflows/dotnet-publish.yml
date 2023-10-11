@@ -9,7 +9,7 @@ on:
 env:
   PROJECT_PATH: VRCMicOverlay/VRCMicOverlay.csproj
   PUBLISH_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/
-  ZIP_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/VRCMicOverlay.zip
+  ZIP_PATH: ./VRCMicOverlay.zip
 
 jobs:
   deploy:
@@ -34,7 +34,7 @@ jobs:
         with:
           type: "zip"
           directory: "${{ env.PUBLISH_PATH }}"
-          filename: "${{env.ZIP_PATH}}"
+          filename: "${{ env.ZIP_PATH }}"
 
       - name: Make Release
         uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
