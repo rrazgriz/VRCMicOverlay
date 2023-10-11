@@ -9,7 +9,7 @@ on:
 env:
   PROJECT_PATH: VRCMicOverlay/VRCMicOverlay.csproj
   PUBLISH_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/
-  ZIP_PATH: VRCMicOverlay.zip
+  ZIP_PATH: VRCMicOverlay/VRCMicOverlay/bin/Release/net6.0/win-x64/publish/VRCMicOverlay.zip
 
 permissions:
   contents: write
