@@ -39,7 +39,7 @@ jobs:
           directory: "${{ env.PUBLISH_PATH }}"
           filename: "${{ env.ZIP_PATH }}"
 
-      - run: ls
+      - run: Get-ChildItem -Recurse -Filter 'VRCMicOverlay.zip'
 
       - name: Make Release
         uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
