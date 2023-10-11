@@ -11,6 +11,9 @@ env:
   PUBLISH_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/
   ZIP_PATH: ./VRCMicOverlay.zip
 
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: windows-latest
