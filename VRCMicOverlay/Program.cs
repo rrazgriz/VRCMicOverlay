@@ -33,13 +33,53 @@ namespace Raz.VRCMicOverlay
 #region State
 
         // Global State
-        static float _iconScaleFactorCurrent = 1.0f;
-        static float _iconScaleFactorTarget = 1.0f;
-        static float _iconScaleFactorRate = 1.0f;
+        internal struct IconState
+        {
+            public IconState()
+            {
+                iconScaleFactorCurrent = 1.0f;
+                iconScaleFactorTarget = 1.0f;
+                iconScaleFactorRate = 1.0f;
 
-        static float _iconAlphaFactorCurrent = 0.0f;
-        static float _iconAlphaFactorTarget = 1.0f;
-        static float _iconAlphaFactorRate = 0.1f;
+                iconAlphaFactorCurrent = 0.0f;
+                iconAlphaFactorTarget = 1.0f;
+                iconAlphaFactorRate = 10.0f;
+            }
+
+            public void Update(float deltaTime)
+            {
+                // Calculate icon Alpha
+                float iconAlphaDelta = iconAlphaFactorRate * deltaTime;
+                if (Math.Abs(iconAlphaFactorTarget - iconAlphaFactorCurrent) > iconAlphaDelta)
+                {
+                    iconAlphaFactorCurrent += iconAlphaDelta * Math.Sign(iconAlphaFactorTarget - iconAlphaFactorCurrent);
+                }
+                else
+                {
+                    // Snap to the target value (so we don't float above zero)
+                    iconAlphaFactorCurrent = iconAlphaFactorTarget;
+                }
+
+                // Calculate icon Scaling
+                float iconScaleDelta = iconScaleFactorRate * deltaTime;
+                if (Math.Abs(iconScaleFactorTarget - iconScaleFactorCurrent) > iconScaleDelta)
+                {
+                    iconScaleFactorCurrent += iconScaleDelta * Math.Sign(iconScaleFactorTarget - iconScaleFactorCurrent);
+                }
+                else
+                {
+                    iconScaleFactorCurrent = iconScaleFactorTarget;
+                }
+            }
+
+            public float iconScaleFactorCurrent;
+            public float iconScaleFactorTarget;
+            public float iconScaleFactorRate;
+
+            public float iconAlphaFactorCurrent;
+            public float iconAlphaFactorTarget;
+            public float iconAlphaFactorRate;
+        }
 
         internal enum MuteState { MUTED, UNMUTED }
 
@@ -122,6 +162,7 @@ namespace Raz.VRCMicOverlay
             string mutedIconPath = Path.Combine(new string[] { executablePath, Config.FILENAME_IMG_MIC_MUTED });
 
             // OpenVR Setup
+            IconState iconState = new IconState();
             var error = new ETrackedPropertyError();
             var initError = EVRInitError.Unknown;
 
@@ -142,7 +183,7 @@ namespace Raz.VRCMicOverlay
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
             EVROverlayErrorHandler(OpenVR.Overlay.ShowOverlay(overlayHandle));
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
-            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, (float)_iconAlphaFactorCurrent));
+            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconState.iconAlphaFactorCurrent));
 
             // Run at display frequency 
             _updateRate = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
@@ -227,7 +268,7 @@ namespace Raz.VRCMicOverlay
                                     micState.vrcMuteState = (bool)message.arguments[0] ? MuteState.MUTED : MuteState.UNMUTED;
 
                                     // Scale icon up (bounce)
-                                    _iconScaleFactorCurrent = Config.ICON_CHANGE_SCALE_FACTOR;
+                                    iconState.iconScaleFactorCurrent = Config.ICON_CHANGE_SCALE_FACTOR;
 
                                     // Reset timers if configured
                                     if (Config.RESTART_FADE_TIMER_ON_STATE_CHANGE)
@@ -240,7 +281,7 @@ namespace Raz.VRCMicOverlay
                                     {
                                         EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
 
-                                        _iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
+                                        iconState.iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
 
                                         if (Config.USE_CUSTOM_MIC_SFX)
                                         {
@@ -252,7 +293,7 @@ namespace Raz.VRCMicOverlay
                                         EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, unmutedIconPath));
 
                                         // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
-                                        _iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
+                                        iconState.iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
                                         micState.unmutedMicLevelTimer = Config.MIC_UNMUTED_FADE_START; // This will be reset if there's voice activity
 
                                         if (Config.USE_CUSTOM_MIC_SFX)
@@ -279,7 +320,7 @@ namespace Raz.VRCMicOverlay
                     // Speaking Logic
                     if (micState.vrcMuteState == MuteState.MUTED)
                     {
-                        _iconAlphaFactorRate = 1 / Config.MIC_MUTED_FADE_PERIOD;
+                        iconState.iconAlphaFactorRate = 1 / Config.MIC_MUTED_FADE_PERIOD;
 
                         if (micState.deviceMicLevel < Config.MUTED_MIC_THRESHOLD)
                         {
@@ -292,17 +333,17 @@ namespace Raz.VRCMicOverlay
 
                         if (micState.mutedMicLevelTimer > Config.MIC_MUTED_FADE_START)
                         {
-                            _iconAlphaFactorTarget = 0.0f;
+                            iconState.iconAlphaFactorTarget = 0.0f;
                         }
                         else
                         {
-                            _iconAlphaFactorRate = ICON_UNFADE_RATE;
-                            _iconAlphaFactorTarget = 1.0f;
+                            iconState.iconAlphaFactorRate = ICON_UNFADE_RATE;
+                            iconState.iconAlphaFactorTarget = 1.0f;
                         }
                     }
                     else
                     {
-                        _iconAlphaFactorRate = 1 / Config.MIC_UNMUTED_FADE_PERIOD;
+                        iconState.iconAlphaFactorRate = 1 / Config.MIC_UNMUTED_FADE_PERIOD;
 
                         if (micState.vrcMicLevel < 0.001f) // Mic level is normalized by VRC so we just need it to be (nearly) zero
                         {
@@ -315,42 +356,21 @@ namespace Raz.VRCMicOverlay
 
                         if (micState.unmutedMicLevelTimer > Config.MIC_UNMUTED_FADE_START)
                         {
-                            _iconAlphaFactorTarget = 0.0f;
+                            iconState.iconAlphaFactorTarget = 0.0f;
                         }
                         else
                         {
-                            _iconAlphaFactorRate = ICON_UNFADE_RATE;
-                            _iconAlphaFactorTarget = 1.0f;
+                            iconState.iconAlphaFactorRate = ICON_UNFADE_RATE;
+                            iconState.iconAlphaFactorTarget = 1.0f;
                         }
                     }
 
-                    // Calculate icon Alpha
-                    float iconAlphaDelta = _iconAlphaFactorRate * (float)elapsedTimeSeconds;
-                    if (Math.Abs(_iconAlphaFactorTarget - _iconAlphaFactorCurrent) > iconAlphaDelta)
-                    {
-                        _iconAlphaFactorCurrent += iconAlphaDelta * Math.Sign(_iconAlphaFactorTarget - _iconAlphaFactorCurrent);
-                    }
-                    else
-                    {
-                        // Snap to the target value (so we don't float above zero)
-                        _iconAlphaFactorCurrent = _iconAlphaFactorTarget;
-                    }
-
-                    // Calculate icon Scaling
-                    float iconScaleDelta = _iconScaleFactorRate * (float)elapsedTimeSeconds;
-                    if (Math.Abs(_iconScaleFactorTarget - _iconScaleFactorCurrent) > iconScaleDelta)
-                    {
-                        _iconScaleFactorCurrent += iconScaleDelta * Math.Sign(_iconScaleFactorTarget - _iconScaleFactorCurrent);
-                    }
-                    else
-                    {
-                        _iconScaleFactorCurrent = _iconScaleFactorTarget;
-                    }
+                    iconState.Update((float)elapsedTimeSeconds);
 
                     // These are inside the timing loop so updates are only sent at the update rate
                     float minAlphaValue = micState.vrcMuteState == MuteState.MUTED ? Config.ICON_MUTED_MIN_ALPHA : Config.ICON_UNMUTED_MIN_ALPHA;
                     float maxAlphaValue = micState.vrcMuteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
-                    float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, _iconAlphaFactorCurrent));
+                    float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, iconState.iconAlphaFactorCurrent));
 
 #if !DEBUG // Always show when debugging
                     if (CHECK_IF_VRC_IS_RUNNING && !_isVRCRunning)
@@ -359,7 +379,7 @@ namespace Raz.VRCMicOverlay
                     }
 #endif
 
-                    EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * _iconScaleFactorCurrent));
+                    EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * iconState.iconScaleFactorCurrent));
                     EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting));
                 }
 
