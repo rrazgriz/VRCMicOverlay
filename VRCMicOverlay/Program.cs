@@ -41,16 +41,28 @@ namespace Raz.VRCMicOverlay
         static float _iconAlphaFactorTarget = 1.0f;
         static float _iconAlphaFactorRate = 0.1f;
 
-        static float _deviceMicLevel = 0.0f;
-        static float _vrcMicLevel = 0.0f;
-        static float _mutedMicLevelTimer = 0.0f;
-        static float _unmutedMicLevelTimer = 0.0f;
+        internal enum MuteState { MUTED, UNMUTED }
+
+        internal struct MicState
+        {
+            public MicState()
+            {
+                deviceMicLevel = 0f;
+                vrcMicLevel = 0f;
+                mutedMicLevelTimer = 0f;
+                unmutedMicLevelTimer = 0f;
+                vrcMuteState = MuteState.MUTED;
+            }
+
+            public float deviceMicLevel;
+            public float vrcMicLevel;
+            public float mutedMicLevelTimer;
+            public float unmutedMicLevelTimer;
+            public MuteState vrcMuteState;
+        }
 
         static double _updateRate = 1 / 144;
         const float ICON_UNFADE_RATE = 1f / 0.05f; // rate per second, chosen arbitrarily
-
-        enum MuteState { MUTED, UNMUTED }
-        static MuteState _muteState = MuteState.MUTED;
 
         static readonly Stopwatch stopWatch = new();
         static readonly Stopwatch processCheckTimer = new();
@@ -171,7 +183,10 @@ namespace Raz.VRCMicOverlay
             List<SimpleOSC.OSCMessage> incomingMessages = new();
 
             // Sound device setup, for listening to audio levels while muted (VRC doesn't send the Voice parameter when muted)
-            SetupMicListener();
+            MicListener micListener = new MicListener();
+            micListener.SetupMicListener(Config);
+
+            MicState micState = new MicState();
 
             CheckIfVRCIsRunning(true);
             processCheckTimer.Start();
@@ -194,8 +209,10 @@ namespace Raz.VRCMicOverlay
 
                     CheckIfVRCIsRunning();
 
+                    micState.deviceMicLevel = micListener.MicLevel;
+
                     // Update Title
-                    Console.Title = $"VRCMicOverlay : {_muteState}{(_isVRCRunning ? "" : " (waiting)")}";
+                    Console.Title = $"VRCMicOverlay : {micState.vrcMuteState}{(_isVRCRunning ? "" : " (waiting)")}";
 
                     // Handle incoming OSC to get mute state (and unmuted mic level)
                     oscReceiver.GetIncomingOSC(incomingMessages);
@@ -207,7 +224,7 @@ namespace Raz.VRCMicOverlay
                             {
                                 if (message.path == OSC_MUTE_SELF_PARAMETER_PATH)
                                 {
-                                    _muteState = (bool)message.arguments[0] ? MuteState.MUTED : MuteState.UNMUTED;
+                                    micState.vrcMuteState = (bool)message.arguments[0] ? MuteState.MUTED : MuteState.UNMUTED;
 
                                     // Scale icon up (bounce)
                                     _iconScaleFactorCurrent = Config.ICON_CHANGE_SCALE_FACTOR;
@@ -215,11 +232,11 @@ namespace Raz.VRCMicOverlay
                                     // Reset timers if configured
                                     if (Config.RESTART_FADE_TIMER_ON_STATE_CHANGE)
                                     {
-                                        _mutedMicLevelTimer = 0;
-                                        _unmutedMicLevelTimer = 0;
+                                        micState.mutedMicLevelTimer = 0;
+                                        micState.unmutedMicLevelTimer = 0;
                                     }
 
-                                    if (_muteState == MuteState.MUTED)
+                                    if (micState.vrcMuteState == MuteState.MUTED)
                                     {
                                         EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
 
@@ -236,7 +253,7 @@ namespace Raz.VRCMicOverlay
 
                                         // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
                                         _iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
-                                        _unmutedMicLevelTimer = Config.MIC_UNMUTED_FADE_START; // This will be reset if there's voice activity
+                                        micState.unmutedMicLevelTimer = Config.MIC_UNMUTED_FADE_START; // This will be reset if there's voice activity
 
                                         if (Config.USE_CUSTOM_MIC_SFX)
                                         {
@@ -246,7 +263,7 @@ namespace Raz.VRCMicOverlay
                                 }
                                 else if (message.path == OSC_VOICE_PARAMETER_PATH)
                                 {
-                                    _vrcMicLevel = (float)message.arguments[0];
+                                    micState.vrcMicLevel = (float)message.arguments[0];
 
                                 }
                             }
@@ -260,20 +277,20 @@ namespace Raz.VRCMicOverlay
                     }
 
                     // Speaking Logic
-                    if (_muteState == MuteState.MUTED)
+                    if (micState.vrcMuteState == MuteState.MUTED)
                     {
                         _iconAlphaFactorRate = 1 / Config.MIC_MUTED_FADE_PERIOD;
 
-                        if (_deviceMicLevel < Config.MUTED_MIC_THRESHOLD)
+                        if (micState.deviceMicLevel < Config.MUTED_MIC_THRESHOLD)
                         {
-                            _mutedMicLevelTimer += (float)elapsedTimeSeconds;
+                            micState.mutedMicLevelTimer += (float)elapsedTimeSeconds;
                         }
                         else
                         {
-                            _mutedMicLevelTimer = 0;
+                            micState.mutedMicLevelTimer = 0;
                         }
 
-                        if (_mutedMicLevelTimer > Config.MIC_MUTED_FADE_START)
+                        if (micState.mutedMicLevelTimer > Config.MIC_MUTED_FADE_START)
                         {
                             _iconAlphaFactorTarget = 0.0f;
                         }
@@ -287,16 +304,16 @@ namespace Raz.VRCMicOverlay
                     {
                         _iconAlphaFactorRate = 1 / Config.MIC_UNMUTED_FADE_PERIOD;
 
-                        if (_vrcMicLevel < 0.001f) // Mic level is normalized by VRC so we just need it to be (nearly) zero
+                        if (micState.vrcMicLevel < 0.001f) // Mic level is normalized by VRC so we just need it to be (nearly) zero
                         {
-                            _unmutedMicLevelTimer += (float)elapsedTimeSeconds;
+                            micState.unmutedMicLevelTimer += (float)elapsedTimeSeconds;
                         }
                         else
                         {
-                            _unmutedMicLevelTimer = 0f;
+                            micState.unmutedMicLevelTimer = 0f;
                         }
 
-                        if (_unmutedMicLevelTimer > Config.MIC_UNMUTED_FADE_START)
+                        if (micState.unmutedMicLevelTimer > Config.MIC_UNMUTED_FADE_START)
                         {
                             _iconAlphaFactorTarget = 0.0f;
                         }
@@ -331,8 +348,8 @@ namespace Raz.VRCMicOverlay
                     }
 
                     // These are inside the timing loop so updates are only sent at the update rate
-                    float minAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MIN_ALPHA : Config.ICON_UNMUTED_MIN_ALPHA;
-                    float maxAlphaValue = _muteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
+                    float minAlphaValue = micState.vrcMuteState == MuteState.MUTED ? Config.ICON_MUTED_MIN_ALPHA : Config.ICON_UNMUTED_MIN_ALPHA;
+                    float maxAlphaValue = micState.vrcMuteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
                     float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, _iconAlphaFactorCurrent));
 
 #if !DEBUG // Always show when debugging
@@ -474,52 +491,59 @@ namespace Raz.VRCMicOverlay
 
 #region Sound
 
-        private static void SetupMicListener()
+        private class MicListener
         {
-            Console.WriteLine("\nAudio Device Selection:");
-            int deviceID = -1;
-            for (int i = 0; i < WaveInEvent.DeviceCount; i++)
+            public float MicLevel { get; private set; }
+
+            internal WaveInEvent waveIn;
+
+            public void SetupMicListener(Configuration configuration)
             {
-                var deviceCapabilities = WaveInEvent.GetCapabilities(i);
-                string deviceName = deviceCapabilities.ProductName;
-                if (deviceName.StartsWith(Config.AUDIO_DEVICE_STARTS_WITH) && Config.AUDIO_DEVICE_STARTS_WITH != "")
+                Console.WriteLine("\nAudio Device Selection:");
+                int deviceID = -1;
+                for (int i = 0; i < WaveInEvent.DeviceCount; i++)
                 {
-                    Console.Write($"✓");
-                    deviceID = i;
+                    var deviceCapabilities = WaveInEvent.GetCapabilities(i);
+                    string deviceName = deviceCapabilities.ProductName;
+                    if (deviceName.StartsWith(configuration.AUDIO_DEVICE_STARTS_WITH) && configuration.AUDIO_DEVICE_STARTS_WITH != "")
+                    {
+                        Console.Write($"✓");
+                        deviceID = i;
+                    }
+                    else
+                    {
+                        Console.Write($" ");
+                    }
+                    Console.WriteLine($" {i} : {deviceName}");
                 }
-                else
+                Console.WriteLine();
+                if(deviceID < 0) Console.WriteLine($"Audio Device \"{configuration.AUDIO_DEVICE_STARTS_WITH}\" not matched, using default recording device.\n");
+
+                waveIn = new WaveInEvent
                 {
-                    Console.Write($" ");
-                }
-                Console.WriteLine($" {i} : {deviceName}");
-            }
-            Console.WriteLine();
-            if(deviceID < 0) Console.WriteLine($"Audio Device \"{Config.AUDIO_DEVICE_STARTS_WITH}\" not matched, using default recording device.\n");
+                    DeviceNumber = deviceID,
+                    // WaveFormat = new WaveFormat(rate: 44100, bits: 16, channels: 2),
+                    BufferMilliseconds = 50
+                };
 
-            var waveIn = new WaveInEvent
-            {
-                DeviceNumber = deviceID,
-                WaveFormat = new WaveFormat(rate: 44100, bits: 16, channels: 2),
-                BufferMilliseconds = 50
-            };
-
-            waveIn.DataAvailable += CalculatePeakMicLevel;
-            waveIn.StartRecording();
-        }
-
-        private static void CalculatePeakMicLevel(object sender, WaveInEventArgs args)
-        {
-            const float maxValue = 32767;
-            const int bytesPerSample = 2;
-            
-            int peakValue = 0;
-            for (int index = 0; index < args.BytesRecorded; index += bytesPerSample)
-            {
-                int value = BitConverter.ToInt16(args.Buffer, index);
-                peakValue = Math.Max(peakValue, value);
+                waveIn.DataAvailable += CalculatePeakMicLevel;
+                waveIn.StartRecording();
             }
 
-            _deviceMicLevel = peakValue / maxValue;
+            private void CalculatePeakMicLevel(object sender, WaveInEventArgs args)
+            {
+                const float maxValue = 32767;
+                const int bytesPerSample = 2;
+                
+                int peakValue = 0;
+                for (int index = 0; index < args.BytesRecorded; index += bytesPerSample)
+                {
+                    int value = BitConverter.ToInt16(args.Buffer, index);
+                    peakValue = Math.Max(peakValue, value);
+                }
+
+                MicLevel = peakValue / maxValue;
+            }
         }
 
         // thanks to https://stackoverflow.com/questions/34277066/how-do-i-fade-out-the-audio-of-a-wav-file-using-soundplayer-instead-of-stopping
