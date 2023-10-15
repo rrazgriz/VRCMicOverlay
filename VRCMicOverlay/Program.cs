@@ -11,6 +11,8 @@ using VRC.OSCQuery;
 
 namespace Raz.VRCMicOverlay
 {
+    internal enum MuteState { MUTED, UNMUTED }
+
     internal class Program
     {
 
@@ -80,8 +82,6 @@ namespace Raz.VRCMicOverlay
             public float iconAlphaFactorTarget;
             public float iconAlphaFactorRate;
         }
-
-        internal enum MuteState { MUTED, UNMUTED }
 
         internal struct MicState
         {
