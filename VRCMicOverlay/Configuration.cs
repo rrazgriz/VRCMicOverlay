@@ -38,7 +38,7 @@ namespace Raz.VRCMicOverlay
         public bool USE_LEGACY_OSC = false;         // Will use OSCQuery if false, recommend keeping false as OSCQuery is integrated in VRChat now
         public int LEGACY_OSC_LISTEN_PORT = 9001;   // Port to listen on, configurable for OSC routers. Only used if USE_LEGACY_OSC is true
 
-        // Non user-modifiable
+        // Non user-modifiable (Won't be serialized)
         internal readonly string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf";
         internal readonly string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
 
