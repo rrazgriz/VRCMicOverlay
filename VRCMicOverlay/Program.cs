@@ -389,9 +389,6 @@ namespace Raz.VRCMicOverlay
         private static float Lerp(float a, float b, float t) => b * t + a * (1f - t);
         private static float Saturate(float v) => Math.Clamp(v, 0f, 1f);
 
-        private static double Frac(double v) => v - Math.Truncate(v);
-        private static double PingPong(double v) => (Math.Abs(Frac((v) / (2.0)) * 2.0 - 1) - 0.5) * 2;
-
 #endregion
 
 #region OpenVR
