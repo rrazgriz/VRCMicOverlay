@@ -292,53 +292,8 @@ namespace Raz.VRCMicOverlay
                         Console.WriteLine(e);
                     }
 
-                    // Speaking Logic
-                    if (micState.vrcMuteState == MuteState.MUTED)
-                    {
-                        iconState.iconAlphaFactorRate = 1 / Config.MIC_MUTED_FADE_PERIOD;
-
-                        if (micState.deviceMicLevel < Config.MUTED_MIC_THRESHOLD)
-                        {
-                            micState.mutedMicLevelTimer += (float)deltaTime;
-                        }
-                        else
-                        {
-                            micState.mutedMicLevelTimer = 0;
-                        }
-
-                        if (micState.mutedMicLevelTimer > Config.MIC_MUTED_FADE_START)
-                        {
-                            iconState.iconAlphaFactorTarget = 0.0f;
-                        }
-                        else
-                        {
-                            iconState.iconAlphaFactorRate = 1 / Config.ICON_UNFADE_TIME;
-                            iconState.iconAlphaFactorTarget = 1.0f;
-                        }
-                    }
-                    else
-                    {
-                        iconState.iconAlphaFactorRate = 1 / Config.MIC_UNMUTED_FADE_PERIOD;
-
-                        if (micState.vrcMicLevel < 0.001f) // Mic level is normalized by VRC so we just need it to be (nearly) zero
-                        {
-                            micState.unmutedMicLevelTimer += (float)deltaTime;
-                        }
-                        else
-                        {
-                            micState.unmutedMicLevelTimer = 0f;
-                        }
-
-                        if (micState.unmutedMicLevelTimer > Config.MIC_UNMUTED_FADE_START)
-                        {
-                            iconState.iconAlphaFactorTarget = 0.0f;
-                        }
-                        else
-                        {
-                            iconState.iconAlphaFactorRate = 1 / Config.ICON_UNFADE_TIME;
-                            iconState.iconAlphaFactorTarget = 1.0f;
-                        }
-                    }
+                    // Set timers and values
+                    ProcessMicAndIconState(ref micState, ref iconState, Config, (float)deltaTime);
 
                     iconState.Update((float)deltaTime);
 
@@ -362,6 +317,57 @@ namespace Raz.VRCMicOverlay
                 // From MSDN: If the value of the millisecondsTimeout argument is zero, the thread relinquishes the remainder of its time slice to any thread of equal priority that is ready to run.
                 // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.sleep
                 Thread.Sleep(0);
+            }
+        }
+
+        static void ProcessMicAndIconState(ref MicState micState, ref IconState iconState, Configuration Config, float deltaTime)
+        {
+            // Speaking Logic
+            if (micState.vrcMuteState == MuteState.MUTED)
+            {
+                iconState.iconAlphaFactorRate = 1 / Config.MIC_MUTED_FADE_PERIOD;
+
+                if (micState.deviceMicLevel < Config.MUTED_MIC_THRESHOLD)
+                {
+                    micState.mutedMicLevelTimer += deltaTime;
+                }
+                else
+                {
+                    micState.mutedMicLevelTimer = 0;
+                }
+
+                if (micState.mutedMicLevelTimer > Config.MIC_MUTED_FADE_START)
+                {
+                    iconState.iconAlphaFactorTarget = 0.0f;
+                }
+                else
+                {
+                    iconState.iconAlphaFactorRate = 1 / Config.ICON_UNFADE_TIME;
+                    iconState.iconAlphaFactorTarget = 1.0f;
+                }
+            }
+            else
+            {
+                iconState.iconAlphaFactorRate = 1 / Config.MIC_UNMUTED_FADE_PERIOD;
+
+                if (micState.vrcMicLevel < 0.001f) // Mic level is normalized by VRC so we just need it to be (nearly) zero
+                {
+                    micState.unmutedMicLevelTimer += deltaTime;
+                }
+                else
+                {
+                    micState.unmutedMicLevelTimer = 0f;
+                }
+
+                if (micState.unmutedMicLevelTimer > Config.MIC_UNMUTED_FADE_START)
+                {
+                    iconState.iconAlphaFactorTarget = 0.0f;
+                }
+                else
+                {
+                    iconState.iconAlphaFactorRate = 1 / Config.ICON_UNFADE_TIME;
+                    iconState.iconAlphaFactorTarget = 1.0f;
+                }
             }
         }
 
