@@ -27,6 +27,8 @@ namespace Raz.VRCMicOverlay
         public float MIC_UNMUTED_FADE_START  = 0.3f;    // Time before icon starts fading while unmuted
         public float MIC_UNMUTED_FADE_PERIOD = 1.0f;    // Time to fade from max to min alpha while unmuted
 
+        public float ICON_UNFADE_TIME = 0.05f; // Time to go from faded to unfaded
+
         public string FILENAME_SFX_MIC_UNMUTED = "sfx-unmute.wav";          // Custom sound for unmute (must be wav)
         public string FILENAME_SFX_MIC_MUTED = "sfx-mute.wav";              // Custom sound for mute (must be wav)
         public string FILENAME_IMG_MIC_UNMUTED = "microphone-unmuted.png";  // Custom icon while unmuted (should probably only be png)

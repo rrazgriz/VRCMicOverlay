@@ -99,8 +99,6 @@ namespace Raz.VRCMicOverlay
             public MuteState vrcMuteState;
         }
 
-        const float ICON_UNFADE_RATE = 1f / 0.05f; // rate per second, chosen arbitrarily
-
         static Configuration Config = new();
 
 #endregion
@@ -329,7 +327,7 @@ namespace Raz.VRCMicOverlay
                         }
                         else
                         {
-                            iconState.iconAlphaFactorRate = ICON_UNFADE_RATE;
+                            iconState.iconAlphaFactorRate = 1 / Config.ICON_UNFADE_TIME;
                             iconState.iconAlphaFactorTarget = 1.0f;
                         }
                     }
@@ -352,7 +350,7 @@ namespace Raz.VRCMicOverlay
                         }
                         else
                         {
-                            iconState.iconAlphaFactorRate = ICON_UNFADE_RATE;
+                            iconState.iconAlphaFactorRate = 1 / Config.ICON_UNFADE_TIME;
                             iconState.iconAlphaFactorTarget = 1.0f;
                         }
                     }
