@@ -101,17 +101,9 @@ namespace Raz.VRCMicOverlay
             public MuteState vrcMuteState;
         }
 
-        static double _updateRate = 1 / 144;
         const float ICON_UNFADE_RATE = 1f / 0.05f; // rate per second, chosen arbitrarily
 
-        static readonly Stopwatch stopWatch = new();
-        static readonly Stopwatch processCheckTimer = new();
-        const float PROCESS_CHECK_INTERVAL = 5.0f;
-        const bool CHECK_IF_VRC_IS_RUNNING = true;
-
         static Configuration Config = new();
-
-        static bool _isVRCRunning = false;
 
 #endregion
 
@@ -185,8 +177,9 @@ namespace Raz.VRCMicOverlay
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconState.iconAlphaFactorCurrent));
 
-            // Run at display frequency 
-            _updateRate = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
+            // Run at display frequency
+            double updateInterval = 1 / 144;
+            updateInterval = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
 
             // Sound setup
             System.Media.SoundPlayer sfxMute = new(Config.FILENAME_SFX_MIC_MUTED);
@@ -229,8 +222,11 @@ namespace Raz.VRCMicOverlay
 
             MicState micState = new MicState();
 
-            CheckIfVRCIsRunning(true);
-            processCheckTimer.Start();
+            double deltaTime = 0f;
+
+            ProcessRunningTracker vrcProcessTracker = new ProcessRunningTracker("VRChat", 5.0f);
+
+            Stopwatch stopWatch = new();
             stopWatch.Start();
 
             Console.WriteLine("All Set up! Listening...");
@@ -243,17 +239,15 @@ namespace Raz.VRCMicOverlay
             while (true)
             {
                 // Main timing loop
-                double elapsedTimeSeconds = stopWatch.Elapsed.TotalMilliseconds / 1000;
-                if (elapsedTimeSeconds > _updateRate)
+                deltaTime = stopWatch.Elapsed.TotalMilliseconds / 1000;
+                if (deltaTime > updateInterval)
                 {
                     stopWatch.Restart();
-
-                    CheckIfVRCIsRunning();
 
                     micState.deviceMicLevel = micListener.MicLevel;
 
                     // Update Title
-                    Console.Title = $"VRCMicOverlay : {micState.vrcMuteState}{(_isVRCRunning ? "" : " (waiting)")}";
+                    Console.Title = $"VRCMicOverlay : {micState.vrcMuteState}{(vrcProcessTracker.IsProcessRunning ? "" : " (waiting)")}";
 
                     // Handle incoming OSC to get mute state (and unmuted mic level)
                     oscReceiver.GetIncomingOSC(incomingMessages);
@@ -324,7 +318,7 @@ namespace Raz.VRCMicOverlay
 
                         if (micState.deviceMicLevel < Config.MUTED_MIC_THRESHOLD)
                         {
-                            micState.mutedMicLevelTimer += (float)elapsedTimeSeconds;
+                            micState.mutedMicLevelTimer += (float)deltaTime;
                         }
                         else
                         {
@@ -347,7 +341,7 @@ namespace Raz.VRCMicOverlay
 
                         if (micState.vrcMicLevel < 0.001f) // Mic level is normalized by VRC so we just need it to be (nearly) zero
                         {
-                            micState.unmutedMicLevelTimer += (float)elapsedTimeSeconds;
+                            micState.unmutedMicLevelTimer += (float)deltaTime;
                         }
                         else
                         {
@@ -365,7 +359,7 @@ namespace Raz.VRCMicOverlay
                         }
                     }
 
-                    iconState.Update((float)elapsedTimeSeconds);
+                    iconState.Update((float)deltaTime);
 
                     // These are inside the timing loop so updates are only sent at the update rate
                     float minAlphaValue = micState.vrcMuteState == MuteState.MUTED ? Config.ICON_MUTED_MIN_ALPHA : Config.ICON_UNMUTED_MIN_ALPHA;
@@ -373,7 +367,7 @@ namespace Raz.VRCMicOverlay
                     float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, iconState.iconAlphaFactorCurrent));
 
 #if !DEBUG // Always show when debugging
-                    if (CHECK_IF_VRC_IS_RUNNING && !_isVRCRunning)
+                    if (!vrcProcessTracker.IsProcessRunning)
                     {
                         iconAlphaFactorSetting = 0.0f;
                     }
@@ -566,6 +560,17 @@ namespace Raz.VRCMicOverlay
             }
         }
 
+#endregion
+
+#region Windows
+
+        [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow([In] IntPtr hWnd, [In] int nCmdShow);
+        
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetConsoleWindow();
+
         // thanks to https://stackoverflow.com/questions/34277066/how-do-i-fade-out-the-audio-of-a-wav-file-using-soundplayer-instead-of-stopping
         [DllImport("winmm.dll", EntryPoint = "waveOutGetVolume")]
         private static extern int WaveOutGetVolume(IntPtr hwo, out uint dwVolume);
@@ -583,41 +588,63 @@ namespace Raz.VRCMicOverlay
 
 #endregion
 
-#region Windows
 
-        private static bool IsProcessRunning(string processName)
+    }
+
+    internal class ProcessRunningTracker
+    {
+        private bool isProcessRunning;
+        public bool IsProcessRunning 
+        {
+            get 
+            {
+                PeriodicCheck();
+                return isProcessRunning; 
+            } 
+            private set { isProcessRunning = value; } 
+        }
+        public float ProcessCheckInterval { get; set; }
+
+        internal readonly string processName;
+        internal Stopwatch stopwatch = new Stopwatch();
+
+        public ProcessRunningTracker(string _processName, float _processCheckInterval)
+        {
+            processName = _processName;
+            ProcessCheckInterval = _processCheckInterval;
+            IsProcessRunning = CheckIfProcessIsRunning(processName);
+            PrintProcessSatus(isProcessRunning);
+            stopwatch.Start();
+        }
+
+        private bool CheckIfProcessIsRunning(string processName)
         {
             Process[] pname = Process.GetProcessesByName(processName);
             return pname.Length > 0;
         }
 
-        private static void CheckIfVRCIsRunning(bool isFirstCheck = false)
+        public void PeriodicCheck()
         {
-            if (CHECK_IF_VRC_IS_RUNNING && (isFirstCheck || processCheckTimer.Elapsed.TotalSeconds > PROCESS_CHECK_INTERVAL))
+            if (stopwatch.Elapsed.TotalSeconds > ProcessCheckInterval)
             {
-                bool isVRCRunningNow = IsProcessRunning("VRChat");
+                stopwatch.Restart();
 
-                if (isVRCRunningNow != _isVRCRunning || isFirstCheck)
+                bool isProcessRunningNow = CheckIfProcessIsRunning(processName);
+
+                if (isProcessRunningNow != isProcessRunning)
                 {
-                    if (isVRCRunningNow)
-                        Console.WriteLine("VRChat Process Detected, showing Mic!");
-                    else
-                        Console.WriteLine("VRChat Process NOT Detected, hiding Mic!");
+                    PrintProcessSatus(isProcessRunningNow);
+                    IsProcessRunning = isProcessRunningNow;
                 }
-
-                _isVRCRunning = isVRCRunningNow;
-                processCheckTimer.Restart();
             }
         }
 
-        [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool ShowWindow([In] IntPtr hWnd, [In] int nCmdShow);
-        
-        [DllImport("kernel32.dll")]
-        static extern IntPtr GetConsoleWindow();
-
-#endregion
-
+        private void PrintProcessSatus(bool isRunning)
+        {
+            if (isRunning)
+                Console.WriteLine($"{processName} Process Detected!");
+            else
+                Console.WriteLine($"{processName} Process NOT Detected!");
+        }
     }
 }
