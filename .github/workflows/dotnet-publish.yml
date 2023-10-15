@@ -9,7 +9,7 @@ on:
 env:
   PROJECT_PATH: VRCMicOverlay/VRCMicOverlay.csproj
   PUBLISH_PATH: VRCMicOverlay/bin/Release/net6.0/win-x64/publish/
-  ZIP_FILENAME: VRCMicOverlay
+  ZIP_FILENAME: "VRCMicOverlay-${{ github.ref_name }}.zip"
 
 permissions:
   contents: write
@@ -40,7 +40,7 @@ jobs:
           type: "zip"
           directory: "${{ env.PUBLISH_PATH }}"
           path: "."
-          filename: "../../../../../../${{ env.ZIP_FILENAME }}.zip"
+          filename: "../../../../../../${{ env.ZIP_FILENAME }}"
           exclusions: '*.pdb'
 
       - name: Make Release
@@ -48,4 +48,4 @@ jobs:
         with:
           name: "VRCMicOverlay ${{ github.ref_name }}"
           tag_name: ${{ github.ref_name }}
-          files: "${{ env.ZIP_FILENAME }}.zip"
+          files: "${{ env.ZIP_FILENAME }}"
