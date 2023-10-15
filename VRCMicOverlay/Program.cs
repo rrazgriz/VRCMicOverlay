@@ -14,22 +14,6 @@ namespace Raz.VRCMicOverlay
     internal class Program
     {
 
-#region Constants
-
-        static string executablePath = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? "";
-        
-        const string SETTINGS_FILENAME = "settings.json"; // User-modifiable settings, generated
-        const string MANIFEST_FILENAME = "vrcmicoverlay.vrmanifest"; // Used to set up SteamVR autostart
-
-        const string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf";
-        const string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
-
-        const string APPLICATION_KEY = "one.raz.vrcmicoverlay";
-        const string OVERLAY_KEY = "one.raz.vrcmicoverlay.mic";
-        const string OVERLAY_NAME = "VRCMicOverlay";
-
-#endregion
-
 #region State
 
         // Global State
@@ -112,11 +96,12 @@ namespace Raz.VRCMicOverlay
 #endif
 
             Configuration Config = new();
+            string executablePath = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? "";
 
             var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
 
             // Settings
-            string settingsPath = Path.Combine(new string[] { executablePath, SETTINGS_FILENAME });
+            string settingsPath = Path.Combine(new string[] { executablePath, Config.SETTINGS_FILENAME });
             if (File.Exists(settingsPath))
             {
                 try
@@ -157,10 +142,10 @@ namespace Raz.VRCMicOverlay
             var ovrApplicationType = EVRApplicationType.VRApplication_Overlay;
             OpenVR.InitInternal(ref initError, ovrApplicationType);
 
-            SetupOpenVRAutostart();
+            SetupOpenVRAutostart(Config);
 
             ulong overlayHandle = 0;
-            EVROverlayErrorHandler(OpenVR.Overlay.CreateOverlay(OVERLAY_KEY, OVERLAY_NAME, ref overlayHandle));
+            EVROverlayErrorHandler(OpenVR.Overlay.CreateOverlay(Config.OVERLAY_KEY, Config.OVERLAY_NAME, ref overlayHandle));
 
             Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
 
@@ -204,8 +189,8 @@ namespace Raz.VRCMicOverlay
                     .Build();
 
                 oscQuery.RefreshServices();
-                oscQuery.AddEndpoint<bool>(OSC_MUTE_SELF_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
-                oscQuery.AddEndpoint<float>(OSC_VOICE_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
+                oscQuery.AddEndpoint<bool>(Config.OSC_MUTE_SELF_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
+                oscQuery.AddEndpoint<float>(Config.OSC_VOICE_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
             }
 
             SimpleOSC oscReceiver = new();
@@ -253,7 +238,7 @@ namespace Raz.VRCMicOverlay
                         {
                             foreach (var message in incomingMessages)
                             {
-                                if (message.path == OSC_MUTE_SELF_PARAMETER_PATH)
+                                if (message.path == Config.OSC_MUTE_SELF_PARAMETER_PATH)
                                 {
                                     micState.vrcMuteState = (bool)message.arguments[0] ? MuteState.MUTED : MuteState.UNMUTED;
 
@@ -292,7 +277,7 @@ namespace Raz.VRCMicOverlay
                                         }
                                     }
                                 }
-                                else if (message.path == OSC_VOICE_PARAMETER_PATH)
+                                else if (message.path == Config.OSC_VOICE_PARAMETER_PATH)
                                 {
                                     micState.vrcMicLevel = (float)message.arguments[0];
 
@@ -447,21 +432,23 @@ namespace Raz.VRCMicOverlay
             public string description;
         }
 
-        private static void SetupOpenVRAutostart()
+        private static void SetupOpenVRAutostart(Configuration config)
         {
-            string manifestPath = Path.Combine(executablePath, MANIFEST_FILENAME);
+            string executablePath = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? $".{Path.DirectorySeparatorChar}";
+
+            string manifestPath = Path.Combine(executablePath, config.MANIFEST_FILENAME);
 
             var manifest = new SteamVR_ManifestFile();
             var manifestApplication = new SteamVR_ManifestFile_Application
             {
-                app_key = APPLICATION_KEY,
+                app_key = config.APPLICATION_KEY,
                 launch_type = "binary",
                 binary_path_windows = "VRCMicOverlay.exe",
                 is_dashboard_overlay = true
             };
             var strings = new SteamVR_ManifestFile_ApplicationString()
             {
-                name = OVERLAY_NAME,
+                name = config.OVERLAY_NAME,
                 description = "OpenVR Overlay to replace the built in VRChat HUD mic icon"
             };
             manifestApplication.strings.Add("en_us", strings);
@@ -473,26 +460,26 @@ namespace Raz.VRCMicOverlay
             File.WriteAllText(manifestPath, manifestJsonString);
 
             // Set up autolaunch
-            if (!OpenVR.Applications.IsApplicationInstalled(APPLICATION_KEY))
+            if (!OpenVR.Applications.IsApplicationInstalled(config.APPLICATION_KEY))
             {
                 // Add our manifest first
                 EVRApplicationErrorHandler(OpenVR.Applications.AddApplicationManifest(manifestPath, false));
-                EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(APPLICATION_KEY, true));
+                EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(config.APPLICATION_KEY, true));
             }
             else
             {
                 // Check if the autolaunch is set up with the current program location
-                bool isAutostartEnabled = OpenVR.Applications.GetApplicationAutoLaunch(APPLICATION_KEY);
+                bool isAutostartEnabled = OpenVR.Applications.GetApplicationAutoLaunch(config.APPLICATION_KEY);
                 StringBuilder binaryPath = new();
                 EVRApplicationError dummyApplicationError = EVRApplicationError.None;
-                OpenVR.Applications.GetApplicationPropertyString(APPLICATION_KEY, EVRApplicationProperty.BinaryPath_String, binaryPath, 255, ref dummyApplicationError);
+                OpenVR.Applications.GetApplicationPropertyString(config.APPLICATION_KEY, EVRApplicationProperty.BinaryPath_String, binaryPath, 255, ref dummyApplicationError);
                 string binaryPathTrimmed = Path.GetDirectoryName(binaryPath.ToString());
                 
                 if (!String.Equals(binaryPathTrimmed, executablePath, StringComparison.Ordinal))
                 {
-                    EVRApplicationErrorHandler(OpenVR.Applications.RemoveApplicationManifest(Path.Combine($"{binaryPathTrimmed}", MANIFEST_FILENAME)));
+                    EVRApplicationErrorHandler(OpenVR.Applications.RemoveApplicationManifest(Path.Combine($"{binaryPathTrimmed}", config.MANIFEST_FILENAME)));
                     EVRApplicationErrorHandler(OpenVR.Applications.AddApplicationManifest(manifestPath, false));
-                    EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(APPLICATION_KEY, isAutostartEnabled));
+                    EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(config.APPLICATION_KEY, isAutostartEnabled));
                 }
             }
         }

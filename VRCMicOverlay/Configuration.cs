@@ -2,6 +2,7 @@ namespace Raz.VRCMicOverlay
 {
     internal class Configuration
     {
+        // User-Configurable Settings
         public float ICON_MUTED_MAX_ALPHA = 0.50f;      // Max icon transparency (0-1) while muted
         public float ICON_MUTED_MIN_ALPHA = 0.00f;      // Min icon transparency (0-1) while muted
         public float ICON_UNMUTED_MAX_ALPHA = 0.75f;    // Max icon transparency (0-1) while unmuted
@@ -36,5 +37,16 @@ namespace Raz.VRCMicOverlay
 
         public bool USE_LEGACY_OSC = false;         // Will use OSCQuery if false, recommend keeping false as OSCQuery is integrated in VRChat now
         public int LEGACY_OSC_LISTEN_PORT = 9001;   // Port to listen on, configurable for OSC routers. Only used if USE_LEGACY_OSC is true
+
+        // Non user-modifiable
+        internal readonly string OSC_MUTE_SELF_PARAMETER_PATH = "/avatar/parameters/MuteSelf";
+        internal readonly string OSC_VOICE_PARAMETER_PATH = "/avatar/parameters/Voice";
+
+        internal readonly string SETTINGS_FILENAME = "settings.json"; // User-modifiable settings, generated
+        internal readonly string MANIFEST_FILENAME = "vrcmicoverlay.vrmanifest"; // Used to set up SteamVR autostart
+
+        internal readonly string APPLICATION_KEY = "one.raz.vrcmicoverlay";
+        internal readonly string OVERLAY_KEY = "one.raz.vrcmicoverlay.mic";
+        internal readonly string OVERLAY_NAME = "VRCMicOverlay";
     }
 }
