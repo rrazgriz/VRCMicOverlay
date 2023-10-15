@@ -99,8 +99,6 @@ namespace Raz.VRCMicOverlay
             public MuteState vrcMuteState;
         }
 
-        static Configuration Config = new();
-
 #endregion
 
         static void Main(string[] args)
@@ -112,6 +110,8 @@ namespace Raz.VRCMicOverlay
             WindowsUtilities.SetWindowState(WindowsUtilities.GetConsoleWindow(), WindowsUtilities.CMDSHOW.SW_MINIMIZE);
             Console.WriteLine("Minimizing Window");
 #endif
+
+            Configuration Config = new();
 
             var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
 
