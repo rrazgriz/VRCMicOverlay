@@ -20,6 +20,7 @@ namespace Raz.VRCMicOverlay
 
         public float ICON_CHANGE_SCALE_FACTOR = 1.25f; // Scale icon by this factor when changing between mute/unmute. Set to 1.0 to disable
 
+        public bool ICON_ALWAYS_ON_TOP = true;          // Whether the icon should show over all other overlays or not
         public bool ICON_RANDOMIZED_OFFSET = true;      // Randomize icon position about the offset point on startup. May help reduce burn-in/burn-out on (u)OLED HMDs.
         public float ICON_SIZE = 0.05f;                 // Size, square, of icon overlay (in meters)
         public float ICON_OFFSET_X = -0.37f;            // Distance left/right of head center axis (negative is left)

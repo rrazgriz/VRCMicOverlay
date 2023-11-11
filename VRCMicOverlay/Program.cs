@@ -180,6 +180,11 @@ namespace Raz.VRCMicOverlay
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconState.iconAlphaFactorCurrent));
 
+            if (Config.ICON_ALWAYS_ON_TOP)
+            {
+                EVROverlayErrorHandler(OpenVR.Overlay.SetOverlaySortOrder(overlayHandle, uint.MaxValue));
+            }
+
             Color mutedColorTemp = ColorTranslator.FromHtml(Config.ICON_TINT_MUTED);
             Color unmutedColorTemp = ColorTranslator.FromHtml(Config.ICON_TINT_UNMUTED);
 
