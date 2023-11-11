@@ -8,6 +8,9 @@ namespace Raz.VRCMicOverlay
         public float ICON_UNMUTED_MAX_ALPHA = 0.75f;    // Max icon transparency (0-1) while unmuted
         public float ICON_UNMUTED_MIN_ALPHA = 0.05f;    // Min icon transparency (0-1) while unmuted
 
+        public string ICON_TINT_MUTED = "#FF5F5F";      // Icon tint color while muted
+        public string ICON_TINT_UNMUTED = "#FFFFFF";    // Icon tint color while unmuted
+
         public bool USE_CUSTOM_MIC_SFX = false;     // If true, will use custom sfx wav files when muting/unmuting
         public float CUSTOM_MIC_SFX_VOLUME = 0.65f; // Volume (0-1) of custom sfx
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Drawing;
 using System.Numerics;
 using System.Text.Json;
 using System.Diagnostics;
@@ -10,6 +11,22 @@ using VRC.OSCQuery;
 namespace Raz.VRCMicOverlay
 {
     internal enum MuteState { MUTED, UNMUTED }
+
+    internal struct ColorFloat
+    {
+        public float R;
+        public float G;
+        public float B;
+        public float A;
+
+        public ColorFloat(float r, float g, float b, float a)
+        {
+            R = MathF.Min(MathF.Max(0.0f, r), 1.0f);
+            G = MathF.Min(MathF.Max(0.0f, g), 1.0f);
+            B = MathF.Min(MathF.Max(0.0f, b), 1.0f);
+            A = MathF.Min(MathF.Max(0.0f, a), 1.0f);
+        }
+    }
 
     internal class Program
     {
@@ -163,6 +180,26 @@ namespace Raz.VRCMicOverlay
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconState.iconAlphaFactorCurrent));
 
+            Color mutedColorTemp = ColorTranslator.FromHtml(Config.ICON_TINT_MUTED);
+            Color unmutedColorTemp = ColorTranslator.FromHtml(Config.ICON_TINT_UNMUTED);
+
+            ColorFloat mutedColor = new ColorFloat() 
+            {
+                R = MathF.Pow(mutedColorTemp.R/255f, 2.2f), 
+                G = MathF.Pow(mutedColorTemp.G/255f, 2.2f), 
+                B = MathF.Pow(mutedColorTemp.B/255f, 2.2f),
+                A = 1.0f
+            };
+            ColorFloat unmutedColor = new ColorFloat() 
+            {
+                R = MathF.Pow(unmutedColorTemp.R/255f, 2.2f), 
+                G = MathF.Pow(unmutedColorTemp.G/255f, 2.2f), 
+                B = MathF.Pow(unmutedColorTemp.B/255f, 2.2f),
+                A = 1.0f
+            };
+
+            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
+
             // Run at display frequency
             double updateInterval = 1 / 144;
             updateInterval = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
@@ -260,6 +297,7 @@ namespace Raz.VRCMicOverlay
                                     if (micState.vrcMuteState == MuteState.MUTED)
                                     {
                                         EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
+                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
 
                                         iconState.iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
 
@@ -271,6 +309,7 @@ namespace Raz.VRCMicOverlay
                                     else
                                     {
                                         EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, unmutedIconPath));
+                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, unmutedColor.R, unmutedColor.G, unmutedColor.B));
 
                                         // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
                                         iconState.iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
