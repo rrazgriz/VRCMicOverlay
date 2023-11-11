@@ -17,10 +17,11 @@ namespace Raz.VRCMicOverlay
 
         public float ICON_CHANGE_SCALE_FACTOR = 1.25f; // Scale icon by this factor when changing between mute/unmute. Set to 1.0 to disable
 
-        public float ICON_SIZE = 0.05f;         // Size, square, of icon overlay (in meters)
-        public float ICON_OFFSET_X = -0.37f;    // Distance left/right of head center axis (negative is left)
-        public float ICON_OFFSET_Y = -0.26f;    // Distance above/below head axis (negative is in front)
-        public float ICON_OFFSET_Z = -0.92f;    // Distance in front of the head (negative is in front)
+        public bool ICON_RANDOMIZED_OFFSET = true;      // Randomize icon position about the offset point on startup. May help reduce burn-in/burn-out on (u)OLED HMDs.
+        public float ICON_SIZE = 0.05f;                 // Size, square, of icon overlay (in meters)
+        public float ICON_OFFSET_X = -0.37f;            // Distance left/right of head center axis (negative is left)
+        public float ICON_OFFSET_Y = -0.26f;            // Distance above/below head axis (negative is in front)
+        public float ICON_OFFSET_Z = -0.92f;            // Distance in front of the head (negative is in front)
 
         public bool RESTART_FADE_TIMER_ON_STATE_CHANGE = true; // Whether to restart the fade timer when changing from mute/unmute. Play with this to see if you like it
         public float MIC_MUTED_FADE_START    = 1.0f;    // Time before icon starts fading while muted (times are in seconds)

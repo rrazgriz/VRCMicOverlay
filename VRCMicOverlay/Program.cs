@@ -149,6 +149,11 @@ namespace Raz.VRCMicOverlay
 
             Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
 
+            if (Config.ICON_RANDOMIZED_OFFSET)
+            {
+                offsetVector += Config.ICON_SIZE * RandomUnitVector();
+            }
+
             var relativeTransform = GetIconTransform(offsetVector).ToHmdMatrix34_t();
             // Set and forget, this locks the overlay to the head using a specified matrix
             EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform));
@@ -319,7 +324,7 @@ namespace Raz.VRCMicOverlay
             }
         }
 
-        static void ProcessMicAndIconState(ref MicState micState, ref IconState iconState, Configuration Config, float deltaTime)
+        static void ProcessMicAndIconState(ref MicState micState, ref IconState iconState, Configuration Config, float deltaTime, float voiceLevel = 1.0f)
         {
             // Speaking Logic
             if (micState.vrcMuteState == MuteState.MUTED)
@@ -384,6 +389,9 @@ namespace Raz.VRCMicOverlay
             var relativeTransform = Matrix4x4.Multiply(rotMatrix, offsetMatrix);
             return relativeTransform;
         }
+
+        private static float RandomNegativeOneToOne() => Random.Shared.NextSingle() * (Random.Shared.NextSingle() > 0.5f ? 1.0f : -1.0f);
+        private static Vector3 RandomUnitVector() => Vector3.Normalize(new Vector3(RandomNegativeOneToOne(), RandomNegativeOneToOne(), RandomNegativeOneToOne()));
 
         private static float Lerp(float a, float b, float t) => b * t + a * (1f - t);
         private static float Saturate(float v) => Math.Clamp(v, 0f, 1f);
