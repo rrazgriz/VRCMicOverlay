@@ -269,7 +269,6 @@ namespace Raz.VRCMicOverlay
 
                                         // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
                                         iconState.iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
-                                        micState.unmutedMicLevelTimer = Config.MIC_UNMUTED_FADE_START; // This will be reset if there's voice activity
 
                                         if (Config.USE_CUSTOM_MIC_SFX)
                                         {
