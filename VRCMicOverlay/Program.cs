@@ -28,6 +28,7 @@ namespace Raz.VRCMicOverlay
         }
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     internal class Program
     {
 
