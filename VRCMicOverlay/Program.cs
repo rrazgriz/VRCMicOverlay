@@ -408,13 +408,13 @@ namespace Raz.VRCMicOverlay
             {
                 app_key = config.APPLICATION_KEY,
                 launch_type = "binary",
-                binary_path_windows = "VRCMicOverlay.exe",
+                binary_path_windows = config.BINARY_PATH_WINDOWS,
                 is_dashboard_overlay = true
             };
             var strings = new SteamVR_ManifestFile_ApplicationString()
             {
                 name = config.OVERLAY_NAME,
-                description = "OpenVR Overlay to replace the built in VRChat HUD mic icon"
+                description = config.OVERLAY_DESCRIPTION,
             };
             manifestApplication.strings.Add("en_us", strings);
             manifest.applications = new List<SteamVR_ManifestFile_Application> {manifestApplication};

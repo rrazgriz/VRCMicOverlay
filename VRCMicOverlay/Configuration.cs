@@ -53,5 +53,7 @@ namespace Raz.VRCMicOverlay
         internal readonly string APPLICATION_KEY = "one.raz.vrcmicoverlay";
         internal readonly string OVERLAY_KEY = "one.raz.vrcmicoverlay.mic";
         internal readonly string OVERLAY_NAME = "VRCMicOverlay";
+        internal readonly string BINARY_PATH_WINDOWS = "VRCMicOverlay.exe";
+        internal readonly string OVERLAY_DESCRIPTION = "OpenVR Overlay to replace the built in VRChat HUD mic icon";
     }
 }
