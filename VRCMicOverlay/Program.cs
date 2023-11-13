@@ -132,7 +132,7 @@ namespace Raz.VRCMicOverlay
 
                 oscQuery.RefreshServices();
                 oscQuery.AddEndpoint<bool>(Config.OSC_MUTE_SELF_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
-                oscQuery.AddEndpoint<float>(Config.OSC_VOICE_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { true });
+                oscQuery.AddEndpoint<float>(Config.OSC_VOICE_PARAMETER_PATH, Attributes.AccessValues.ReadWrite, new object[] { 0.0f });
             }
 
             SimpleOSC oscReceiver = new();
