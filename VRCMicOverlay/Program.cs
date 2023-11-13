@@ -95,8 +95,8 @@ namespace Raz.VRCMicOverlay
                 OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlaySortOrder(overlayHandle, uint.MaxValue));
             }
 
-            ColorFloat mutedColor = new ColorFloat(ColorTranslator.FromHtml(Config.ICON_TINT_MUTED));
-            ColorFloat unmutedColor = new ColorFloat(ColorTranslator.FromHtml(Config.ICON_TINT_UNMUTED));
+            ColorFloat mutedColor = new(ColorTranslator.FromHtml(Config.ICON_TINT_MUTED));
+            ColorFloat unmutedColor = new(ColorTranslator.FromHtml(Config.ICON_TINT_UNMUTED));
 
             OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
 
@@ -117,11 +117,11 @@ namespace Raz.VRCMicOverlay
                 int oscQueryPort = VRC.OSCQuery.Extensions.GetAvailableTcpPort();
                 string oscIP = "127.0.0.1";
 
-                const string OSCQUERY_SERVICE_NAME = "VRCMicOverlay";
+                string serviceName = Config.OVERLAY_NAME;
                 Console.Write($"\nSetting up OSCQuery on {oscIP} UDP:{oscPort} TCP:{oscQueryPort}\n");
                 IDiscovery discovery = new MeaModDiscovery();
                 var oscQuery = new OSCQueryServiceBuilder()
-                    .WithServiceName(OSCQUERY_SERVICE_NAME)
+                    .WithServiceName(serviceName)
                     .WithUdpPort(oscPort)
                     .WithTcpPort(oscQueryPort)
                     .WithDiscovery(discovery)
@@ -140,14 +140,14 @@ namespace Raz.VRCMicOverlay
             List<SimpleOSC.OSCMessage> incomingMessages = new();
 
             // Sound device setup, for listening to audio levels while muted (VRC doesn't send the Voice parameter when muted)
-            MicListener micListener = new MicListener();
+            MicListener micListener = new();
             micListener.SetupMicListener(Config);
 
-            MicState micState = new MicState();
+            MicState micState = new();
 
             double deltaTime = 0f;
 
-            ProcessTracker vrcProcessTracker = new ProcessTracker("VRChat", 5.0f);
+            ProcessTracker vrcProcessTracker = new("VRChat", 5.0f);
 
             Stopwatch stopWatch = new();
             stopWatch.Start();
