@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using System.Drawing;
 using System.Numerics;
 using System.Text.Json;
@@ -70,10 +69,10 @@ namespace Raz.VRCMicOverlay
             var ovrApplicationType = EVRApplicationType.VRApplication_Overlay;
             OpenVR.InitInternal(ref initError, ovrApplicationType);
 
-            SetupOpenVRAutostart(Config);
+            OVRUtilities.SetupOpenVRAutostart(Config);
 
             ulong overlayHandle = 0;
-            EVROverlayErrorHandler(OpenVR.Overlay.CreateOverlay(Config.OVERLAY_KEY, Config.OVERLAY_NAME, ref overlayHandle));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.CreateOverlay(Config.OVERLAY_KEY, Config.OVERLAY_NAME, ref overlayHandle));
 
             Vector3 offsetVector = new(Config.ICON_OFFSET_X, Config.ICON_OFFSET_Y, Config.ICON_OFFSET_Z);
 
@@ -84,16 +83,16 @@ namespace Raz.VRCMicOverlay
 
             var relativeTransform = GetIconTransform(offsetVector).ToHmdMatrix34_t();
             // Set and forget, this locks the overlay to the head using a specified matrix
-            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform));
 
-            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
-            EVROverlayErrorHandler(OpenVR.Overlay.ShowOverlay(overlayHandle));
-            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
-            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconState.iconAlphaFactorCurrent));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.ShowOverlay(overlayHandle));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconState.iconAlphaFactorCurrent));
 
             if (Config.ICON_ALWAYS_ON_TOP)
             {
-                EVROverlayErrorHandler(OpenVR.Overlay.SetOverlaySortOrder(overlayHandle, uint.MaxValue));
+                OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlaySortOrder(overlayHandle, uint.MaxValue));
             }
 
             Color mutedColorTemp = ColorTranslator.FromHtml(Config.ICON_TINT_MUTED);
@@ -114,7 +113,7 @@ namespace Raz.VRCMicOverlay
                 A = 1.0f
             };
 
-            EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
 
             // Run at display frequency
             double updateInterval = 1 / 144;
@@ -212,8 +211,8 @@ namespace Raz.VRCMicOverlay
 
                                     if (micState.vrcMuteState == MuteState.MUTED)
                                     {
-                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
-                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
+                                        OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
+                                        OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
 
                                         iconState.iconAlphaFactorCurrent = Config.ICON_MUTED_MAX_ALPHA;
 
@@ -224,8 +223,8 @@ namespace Raz.VRCMicOverlay
                                     }
                                     else
                                     {
-                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, unmutedIconPath));
-                                        EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, unmutedColor.R, unmutedColor.G, unmutedColor.B));
+                                        OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, unmutedIconPath));
+                                        OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, unmutedColor.R, unmutedColor.G, unmutedColor.B));
 
                                         // Bit of a hack to make it not always start at full alpha if not speaking when unmuting
                                         iconState.iconAlphaFactorCurrent = (Config.ICON_UNMUTED_MAX_ALPHA + Config.ICON_UNMUTED_MIN_ALPHA) / 2f;
@@ -268,8 +267,8 @@ namespace Raz.VRCMicOverlay
                     }
 #endif
 
-                    EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * iconState.iconScaleFactorCurrent));
-                    EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting));
+                    OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * iconState.iconScaleFactorCurrent));
+                    OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting));
                 }
 
                 // Give up the rest of our time slice to anything else that needs to run
@@ -350,104 +349,6 @@ namespace Raz.VRCMicOverlay
 
         private static float Lerp(float a, float b, float t) => b * t + a * (1f - t);
         private static float Saturate(float v) => Math.Clamp(v, 0f, 1f);
-
-#endregion
-
-#region OpenVR
-
-        private static EVRApplicationError EVRApplicationErrorHandler(EVRApplicationError error)
-        {
-            if(error != EVRApplicationError.None)
-            {
-                Console.WriteLine($"STEAMVR APPLICATION ERROR: {error.ToString()}");
-            }
-
-            return error;
-        }
-
-        private static EVROverlayError EVROverlayErrorHandler(EVROverlayError error)
-        {
-            if(error != EVROverlayError.None)
-            {
-                Console.WriteLine($"STEAMVR OVERLAY ERROR: {error.ToString()}");
-            }
-
-            return error;
-        }
-
-        // These classes are modified from https://github.com/ValveSoftware/steamvr_unity_plugin/
-        // Used with permission under the BSD 3-Clause license
-        public class SteamVR_ManifestFile
-        {
-            public List<SteamVR_ManifestFile_Application> applications;
-        }
-
-        public class SteamVR_ManifestFile_Application
-        {
-            public string app_key;
-            public string launch_type;
-            public string binary_path_windows;
-            public bool is_dashboard_overlay;
-            public Dictionary<string, SteamVR_ManifestFile_ApplicationString> strings = new Dictionary<string, SteamVR_ManifestFile_ApplicationString>();
-        }
-
-        public class SteamVR_ManifestFile_ApplicationString
-        {
-            public string name;
-            public string description;
-        }
-
-        private static void SetupOpenVRAutostart(Configuration config)
-        {
-            string executablePath = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? $".{Path.DirectorySeparatorChar}";
-
-            string manifestPath = Path.Combine(executablePath, config.MANIFEST_FILENAME);
-
-            var manifest = new SteamVR_ManifestFile();
-            var manifestApplication = new SteamVR_ManifestFile_Application
-            {
-                app_key = config.APPLICATION_KEY,
-                launch_type = "binary",
-                binary_path_windows = config.BINARY_PATH_WINDOWS,
-                is_dashboard_overlay = true
-            };
-            var strings = new SteamVR_ManifestFile_ApplicationString()
-            {
-                name = config.OVERLAY_NAME,
-                description = config.OVERLAY_DESCRIPTION,
-            };
-            manifestApplication.strings.Add("en_us", strings);
-            manifest.applications = new List<SteamVR_ManifestFile_Application> {manifestApplication};
-            
-            var serializerOptions = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
-
-            string manifestJsonString = JsonSerializer.Serialize(manifest, serializerOptions);
-            File.WriteAllText(manifestPath, manifestJsonString);
-
-            // Set up autolaunch
-            if (!OpenVR.Applications.IsApplicationInstalled(config.APPLICATION_KEY))
-            {
-                // Add our manifest first
-                EVRApplicationErrorHandler(OpenVR.Applications.AddApplicationManifest(manifestPath, false));
-                EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(config.APPLICATION_KEY, true));
-            }
-            else
-            {
-                // Check if the autolaunch is set up with the current program location
-                bool isAutostartEnabled = OpenVR.Applications.GetApplicationAutoLaunch(config.APPLICATION_KEY);
-                StringBuilder binaryPath = new();
-                EVRApplicationError dummyApplicationError = EVRApplicationError.None;
-                OpenVR.Applications.GetApplicationPropertyString(config.APPLICATION_KEY, EVRApplicationProperty.BinaryPath_String, binaryPath, 255, ref dummyApplicationError);
-                string binaryPathTrimmed = Path.GetDirectoryName(binaryPath.ToString());
-                
-                if (!String.Equals(binaryPathTrimmed, executablePath, StringComparison.Ordinal))
-                {
-                    EVRApplicationErrorHandler(OpenVR.Applications.RemoveApplicationManifest(Path.Combine($"{binaryPathTrimmed}", config.MANIFEST_FILENAME)));
-                    EVRApplicationErrorHandler(OpenVR.Applications.AddApplicationManifest(manifestPath, false));
-                    EVRApplicationErrorHandler(OpenVR.Applications.SetApplicationAutoLaunch(config.APPLICATION_KEY, isAutostartEnabled));
-                }
-            }
-        }
 
 #endregion
 
