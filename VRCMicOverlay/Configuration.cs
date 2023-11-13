@@ -35,10 +35,10 @@ namespace Raz.VRCMicOverlay
 
         public float ICON_UNFADE_TIME = 0.05f; // Time to go from faded to unfaded
 
-        public string FILENAME_SFX_MIC_UNMUTED = "sfx-unmute.wav";          // Custom sound for unmute (must be wav)
-        public string FILENAME_SFX_MIC_MUTED = "sfx-mute.wav";              // Custom sound for mute (must be wav)
-        public string FILENAME_IMG_MIC_UNMUTED = "microphone-unmuted.png";  // Custom icon while unmuted (should probably only be png)
-        public string FILENAME_IMG_MIC_MUTED = "microphone-muted.png";      // Custom icon while muted (should probably only be png)
+        public string FILENAME_SFX_MIC_UNMUTED = "Assets/sfx-unmute.wav";          // Custom sound for unmute (must be wav)
+        public string FILENAME_SFX_MIC_MUTED = "Assets/sfx-mute.wav";              // Custom sound for mute (must be wav)
+        public string FILENAME_IMG_MIC_UNMUTED = "Assets/microphone-unmuted.png";  // Custom icon while unmuted (should probably only be png)
+        public string FILENAME_IMG_MIC_MUTED = "Assets/microphone-muted.png";      // Custom icon while muted (should probably only be png)
 
         public bool USE_LEGACY_OSC = false;         // Will use OSCQuery if false, recommend keeping false as OSCQuery is integrated in VRChat now
         public int LEGACY_OSC_LISTEN_PORT = 9001;   // Port to listen on, configurable for OSC routers. Only used if USE_LEGACY_OSC is true
