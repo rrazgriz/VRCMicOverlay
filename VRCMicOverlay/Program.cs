@@ -95,23 +95,8 @@ namespace Raz.VRCMicOverlay
                 OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlaySortOrder(overlayHandle, uint.MaxValue));
             }
 
-            Color mutedColorTemp = ColorTranslator.FromHtml(Config.ICON_TINT_MUTED);
-            Color unmutedColorTemp = ColorTranslator.FromHtml(Config.ICON_TINT_UNMUTED);
-
-            ColorFloat mutedColor = new ColorFloat() 
-            {
-                R = MathF.Pow(mutedColorTemp.R/255f, 2.2f), 
-                G = MathF.Pow(mutedColorTemp.G/255f, 2.2f), 
-                B = MathF.Pow(mutedColorTemp.B/255f, 2.2f),
-                A = 1.0f
-            };
-            ColorFloat unmutedColor = new ColorFloat() 
-            {
-                R = MathF.Pow(unmutedColorTemp.R/255f, 2.2f), 
-                G = MathF.Pow(unmutedColorTemp.G/255f, 2.2f), 
-                B = MathF.Pow(unmutedColorTemp.B/255f, 2.2f),
-                A = 1.0f
-            };
+            ColorFloat mutedColor = new ColorFloat(ColorTranslator.FromHtml(Config.ICON_TINT_MUTED));
+            ColorFloat unmutedColor = new ColorFloat(ColorTranslator.FromHtml(Config.ICON_TINT_UNMUTED));
 
             OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayColor(overlayHandle, mutedColor.R, mutedColor.G, mutedColor.B));
 

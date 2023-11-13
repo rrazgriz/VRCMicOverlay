@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 
 namespace Raz.VRCMicOverlay
 {
@@ -72,17 +73,28 @@ namespace Raz.VRCMicOverlay
 
     internal struct ColorFloat
     {
+        // Gamma representation (?)
         public float R;
         public float G;
         public float B;
         public float A;
 
-        public ColorFloat(float r, float g, float b, float a)
+        public ColorFloat(float r = 1.0f, float g = 1.0f, float b = 1.0f, float a = 1.0f)
         {
             R = MathF.Min(MathF.Max(0.0f, r), 1.0f);
             G = MathF.Min(MathF.Max(0.0f, g), 1.0f);
             B = MathF.Min(MathF.Max(0.0f, b), 1.0f);
             A = MathF.Min(MathF.Max(0.0f, a), 1.0f);
+        }
+
+        public ColorFloat(Color color, bool convertToGamma = true)
+        {
+            float gamma = convertToGamma ? 2.2f : 1.0f;
+            // Have to gamma-fy these
+            R = MathF.Pow(color.R/255f, gamma);
+            G = MathF.Pow(color.G/255f, gamma);
+            B = MathF.Pow(color.B/255f, gamma);
+            A = color.A;
         }
     }
 }
