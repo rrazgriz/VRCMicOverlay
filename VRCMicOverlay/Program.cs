@@ -38,6 +38,7 @@ namespace Raz.VRCMicOverlay
                     Console.WriteLine($"Using settings from {settingsPath}");
 
                     // Write config back, in case it's been updated
+                    Config.Validate();
                     string newConfigString = JsonSerializer.Serialize(Config, options);
                     File.WriteAllText(settingsPath, newConfigString);
                 }

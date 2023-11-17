@@ -1,3 +1,5 @@
+using System.Drawing;
+
 namespace Raz.VRCMicOverlay
 {
     internal class Configuration
@@ -57,5 +59,60 @@ namespace Raz.VRCMicOverlay
         internal readonly string OVERLAY_NAME = "VRCMicOverlay";
         internal readonly string BINARY_PATH_WINDOWS = "VRCMicOverlay.exe";
         internal readonly string OVERLAY_DESCRIPTION = "OpenVR Overlay to replace the built in VRChat HUD mic icon";
+
+        public void Validate()
+        {
+            float ClampFloat(float input, float min, float max) => MathF.Max(min, MathF.Min(input, max));
+
+            Configuration defaultConfig = new Configuration();
+
+            const float alphaLimitMin = 0.0f;
+            const float alphaLimitMax = 1.0f;
+            ICON_MUTED_MAX_ALPHA    = ClampFloat(ICON_MUTED_MAX_ALPHA,   alphaLimitMin, alphaLimitMax);
+            ICON_MUTED_MIN_ALPHA    = ClampFloat(ICON_MUTED_MIN_ALPHA,   alphaLimitMin, alphaLimitMax);
+            ICON_UNMUTED_MAX_ALPHA  = ClampFloat(ICON_UNMUTED_MAX_ALPHA, alphaLimitMin, alphaLimitMax);
+            ICON_UNMUTED_MIN_ALPHA  = ClampFloat(ICON_UNMUTED_MIN_ALPHA, alphaLimitMin, alphaLimitMax);
+
+            const float fadeTimeLimitMin = 0.0f;
+            const float fadeTimeLimitMax = 20.0f;
+            MIC_MUTED_FADE_START    = ClampFloat(MIC_MUTED_FADE_START,    fadeTimeLimitMin, fadeTimeLimitMax);
+            MIC_MUTED_FADE_PERIOD   = ClampFloat(MIC_MUTED_FADE_PERIOD,   fadeTimeLimitMin, fadeTimeLimitMax);
+            MIC_UNMUTED_FADE_START  = ClampFloat(MIC_UNMUTED_FADE_START,  fadeTimeLimitMin, fadeTimeLimitMax);
+            MIC_UNMUTED_FADE_PERIOD = ClampFloat(MIC_UNMUTED_FADE_PERIOD, fadeTimeLimitMin, fadeTimeLimitMax);
+
+            bool IsValidHexColor(string color) => System.Text.RegularExpressions.Regex.IsMatch(color, @"^#(?:[0-9a-fA-F]{3}){1,2}$"); // Magic regex bs
+            if (IsValidHexColor(ICON_TINT_MUTED)) ICON_TINT_MUTED = defaultConfig.ICON_TINT_MUTED;
+            if (IsValidHexColor(ICON_TINT_UNMUTED)) ICON_TINT_UNMUTED = defaultConfig.ICON_TINT_UNMUTED;
+
+            const float mutedMicThresholdLimitMin = 0.0f;
+            const float mutedMicThresholdLimitMax = 1.0f;
+            MUTED_MIC_THRESHOLD = ClampFloat(MUTED_MIC_THRESHOLD, mutedMicThresholdLimitMin, mutedMicThresholdLimitMax);
+
+            const float iconSizeLimitMin = 0.01f;
+            const float iconSizeLimitMax = 1.0f;
+            ICON_SIZE = ClampFloat(ICON_SIZE, iconSizeLimitMin, iconSizeLimitMax);
+
+            const float iconScaleFactorLimitMin = 0.0f;
+            const float iconScaleFactorLimitMax = 3.0f;
+            ICON_CHANGE_SCALE_FACTOR = ClampFloat(ICON_CHANGE_SCALE_FACTOR, iconScaleFactorLimitMin, iconScaleFactorLimitMax);
+
+            const float iconPositionLimitMin = -2.0f;
+            const float iconPositionLimitMax =  2.0f;
+            ICON_OFFSET_X = ClampFloat(ICON_OFFSET_X, iconPositionLimitMin, iconPositionLimitMax);
+            ICON_OFFSET_Y = ClampFloat(ICON_OFFSET_Y, iconPositionLimitMin, iconPositionLimitMax);
+            ICON_OFFSET_Z = ClampFloat(ICON_OFFSET_Z, iconPositionLimitMin, iconPositionLimitMax);
+
+            const float iconUnfadeTimeLimitMin = 0.0f;
+            const float iconUnfadeTimeLimitMax = 1.0f;
+            ICON_UNFADE_TIME = ClampFloat(ICON_UNFADE_TIME, iconUnfadeTimeLimitMin, iconUnfadeTimeLimitMax);
+
+            const float iconAlphaExponentLimitMin = 0.1f;
+            const float iconAlphaExponentLimitMax = 4.0f;
+            ICON_ALPHA_EXPONENT = ClampFloat(ICON_ALPHA_EXPONENT, iconAlphaExponentLimitMin, iconAlphaExponentLimitMax);
+
+            const float customMicSfxVolumeLimitMin = 0.0f;
+            const float customMicSfxVolumeLimitMax = 1.0f;
+            CUSTOM_MIC_SFX_VOLUME = ClampFloat(CUSTOM_MIC_SFX_VOLUME, customMicSfxVolumeLimitMin, customMicSfxVolumeLimitMax);
+        }
     }
 }
