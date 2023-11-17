@@ -105,8 +105,7 @@ namespace Raz.VRCMicOverlay
             updateInterval = 1 / (double)OpenVR.System.GetFloatTrackedDeviceProperty(0, ETrackedDeviceProperty.Prop_DisplayFrequency_Float, ref error); // Device 0 should always be headset
 
             // Sound setup
-            System.Media.SoundPlayer sfxMute = new(Config.FILENAME_SFX_MIC_MUTED);
-            System.Media.SoundPlayer sfxUnmute = new(Config.FILENAME_SFX_MIC_UNMUTED);
+            MuteUnmuteSoundPlayer muteUnmuteSoundPlayer = new(Config.FILENAME_SFX_MIC_MUTED, Config.FILENAME_SFX_MIC_UNMUTED);
             WindowsUtilities.SetVolume(Config.CUSTOM_MIC_SFX_VOLUME);
 
             // OSC Setup
@@ -203,7 +202,7 @@ namespace Raz.VRCMicOverlay
 
                                         if (Config.USE_CUSTOM_MIC_SFX)
                                         {
-                                            sfxMute.Play();
+                                            muteUnmuteSoundPlayer.TryPlayMuteSound();
                                         }
                                     }
                                     else
@@ -216,7 +215,7 @@ namespace Raz.VRCMicOverlay
 
                                         if (Config.USE_CUSTOM_MIC_SFX)
                                         {
-                                            sfxUnmute.Play();
+                                            muteUnmuteSoundPlayer.TryPlayUnmuteSound();
                                         }
                                     }
                                 }

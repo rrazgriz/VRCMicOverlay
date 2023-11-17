@@ -97,4 +97,45 @@ namespace Raz.VRCMicOverlay
             A = color.A;
         }
     }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal class MuteUnmuteSoundPlayer
+    {
+        System.Media.SoundPlayer sfxMute;
+        System.Media.SoundPlayer sfxUnmute;
+
+        public void TryPlayMuteSound()
+        {
+            if (sfxMute == null)
+            {
+                return;
+            }
+
+            sfxMute.Play();
+        }
+
+        public void TryPlayUnmuteSound()
+        {
+            if (sfxUnmute == null)
+            {
+                return;
+            }
+
+            sfxUnmute.Play();
+        }
+
+        public MuteUnmuteSoundPlayer(string muteSoundPath, string unmuteSoundPath)
+        {
+            try
+            {
+                sfxMute = new(muteSoundPath);
+                sfxUnmute = new(unmuteSoundPath);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error setting up {nameof(MuteUnmuteSoundPlayer)}: ");
+                Console.WriteLine(e);
+            }
+        }
+    }
 }
