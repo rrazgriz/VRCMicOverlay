@@ -88,7 +88,7 @@ namespace Raz.VRCMicOverlay
             OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayFromFile(overlayHandle, mutedIconPath));
             OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.ShowOverlay(overlayHandle));
             OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE));
-            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconState.iconAlphaFactorCurrent));
+            OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, MathF.Pow(Saturate(iconState.iconAlphaFactorCurrent), MathF.Max(0.0f, Config.ICON_ALPHA_EXPONENT))));
 
             if (Config.ICON_ALWAYS_ON_TOP)
             {
@@ -242,7 +242,7 @@ namespace Raz.VRCMicOverlay
                     // These are inside the timing loop so updates are only sent at the update rate
                     float minAlphaValue = micState.vrcMuteState == MuteState.MUTED ? Config.ICON_MUTED_MIN_ALPHA : Config.ICON_UNMUTED_MIN_ALPHA;
                     float maxAlphaValue = micState.vrcMuteState == MuteState.MUTED ? Config.ICON_MUTED_MAX_ALPHA : Config.ICON_UNMUTED_MAX_ALPHA;
-                    float iconAlphaFactorSetting = Saturate(Lerp(minAlphaValue, maxAlphaValue, iconState.iconAlphaFactorCurrent));
+                    float iconAlphaFactorSetting = MathF.Pow(Saturate(Lerp(minAlphaValue, maxAlphaValue, iconState.iconAlphaFactorCurrent)), MathF.Max(0.0f, Config.ICON_ALPHA_EXPONENT));
 
 #if !DEBUG // Always show when debugging
                     if (!vrcProcessTracker.IsProcessRunning)

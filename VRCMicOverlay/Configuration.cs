@@ -34,6 +34,7 @@ namespace Raz.VRCMicOverlay
         public float MIC_UNMUTED_FADE_PERIOD = 1.0f;    // Time to fade from max to min alpha while unmuted
 
         public float ICON_UNFADE_TIME = 0.05f; // Time to go from faded to unfaded
+        public float ICON_ALPHA_EXPONENT = 2.0f; // Scaling exponent for alpha. Recommend keeping at 2.0, reducing if long fade times are used.
 
         public string FILENAME_SFX_MIC_UNMUTED = "Assets/sfx-unmute.wav";          // Custom sound for unmute (must be wav)
         public string FILENAME_SFX_MIC_MUTED = "Assets/sfx-mute.wav";              // Custom sound for mute (must be wav)
