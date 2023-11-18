@@ -292,15 +292,12 @@ namespace Raz.VRCMicOverlay
                     OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * iconState.iconScaleFactorCurrent));
                     OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting));
 
-                    // Handle Icon Shifting
-                    Vector2 offsetDegrees = Vector2.Zero;
                     if (Config.ICON_SHIFTING)
                     {
-                        offsetDegrees = GetIconOffsetRadians(Config, iconShiftStopwatch);
+                        Vector2 offsetDegrees = GetIconOffsetRadians(Config, iconShiftStopwatch);
+                        relativeTransform = GetIconTransform(offsetVector, offsetDegrees).ToHmdMatrix34_t();
+                        OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform));
                     }
-
-                    relativeTransform = GetIconTransform(offsetVector, offsetDegrees).ToHmdMatrix34_t();
-                    OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform));
                 }
 
                 // Give up the rest of our time slice to anything else that needs to run
