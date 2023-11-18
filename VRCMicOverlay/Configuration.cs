@@ -1,5 +1,3 @@
-using System.Drawing;
-
 namespace Raz.VRCMicOverlay
 {
     internal class Configuration
