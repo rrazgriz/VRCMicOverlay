@@ -10,7 +10,7 @@ Features include icon and sound asset customization, configurable fadeout timers
 
 Using an OpenVR overlay offers a number of advantages, most notably very, very smooth operation even under adverse application performance, as seen in this recording (top is VRCMicOverlay, bottom is the VRChat native Mic Icon):
 
-https://github.com/rrazgriz/VRCMicOverlay/assets/47901762/16342ff6-b003-4f92-a988-b6395f17f6cd
+https://github.com/rrazgriz/VRCMicOverlay/assets/47901762/3a35b5a4-9e34-4621-97e5-8b8d720aa4d7
 
 Structurally, VRCMicOverlay is a console application that uses a simple program structure with a tight inner loop that does only what it needs to. It has no runtime input and is configured entirely through a generated `settings.json` file. This limits flexibility, but it was easy to get up and running quickly, performs well, and is reliable - I've used this overlay as a full replacement for VRChat's Microphone Icon for hundreds of hours with minimal issues.
 
