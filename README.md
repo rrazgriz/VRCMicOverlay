@@ -1,5 +1,7 @@
 # 🎙️ VRCMicOverlay
 
+License: MIT
+
 ## [📦 Download Latest Release](https://github.com/rrazgriz/VRCMicOverlay/releases/latest)
 
 OpenVR Overlay written in C# that implements a custom microphone icon and sounds for VRChat. This was made so I could learn more about SteamVR/OpenVR overlays, and because I wanted more control than the VRChat implementation gives.

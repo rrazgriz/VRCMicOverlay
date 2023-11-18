@@ -34,6 +34,8 @@ jobs:
 
       - run: Copy-Item "README.md" -Destination "${{ env.PUBLISH_PATH }}"
 
+      - run: Copy-Item "LICENSE.md" -Destination "${{ env.PUBLISH_PATH }}"
+
       - name: Create Zip File
         uses: thedoctor0/zip-release@09336613be18a8208dfa66bd57efafd9e2685657
         with:
