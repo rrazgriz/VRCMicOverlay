@@ -28,6 +28,7 @@ If you find issues, feel free to file a GitHub issue. I can't guarantee I'll be 
   - `ICON_MUTED_MAX_ALPHA` (and min/unmuted variants) - 0 to 1, how transparent (0) or opaque (1) the mic should be in the fully unfaded (MAX) faded (MIN) state
   - `MIC_MUTED_FADE_START`/`MIC_MUTED_FADE_PERIOD` (and unmuted variants) - how long, in seconds, to wait at full alpha (START) and how long the fade should be (PERIOD).
   - `ICON_TINT_MUTED`/`ICON_TINT_UNMUTED` - hex color code that applies a tint over the icon. If you use a custom icon that has multiple colors, set this to `#FFFFFF` for no tint.
+  - `ICON_SHIFTING` - whether the icon should slowly move in a circle. This is enabled by default to help reduce burn-in on certain hmds - set it to `false` if it bothers you.
   - `AUDIO_DEVICE_STARTS_WITH` - string of the first unique string of the name of your input device (these are listed at startup). If the input device you want to be listening to isn't the default, edit this.
   - `ICON_SIZE` - size (in meters, world-space width) of the mic icon. The default approximately matches VRChat's default.
 - The Microphone Icon template is stored as a `.psd` in the source code's Assets folder. I edited it using Krita.
