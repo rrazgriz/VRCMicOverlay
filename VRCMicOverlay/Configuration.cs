@@ -41,6 +41,7 @@ namespace Raz.VRCMicOverlay
         public bool USE_CUSTOM_MIC_SFX = false;     // If true, will use custom sfx wav files when muting/unmuting
         public float CUSTOM_MIC_SFX_VOLUME = 0.65f; // Volume (0-1) of custom sfx
 
+        // All paths are relative to filepath of exe
         public string FILENAME_SFX_MIC_UNMUTED = "Assets/sfx-unmute.wav";          // Custom sound for unmute (must be wav)
         public string FILENAME_SFX_MIC_MUTED = "Assets/sfx-mute.wav";              // Custom sound for mute (must be wav)
         public string FILENAME_IMG_MIC_UNMUTED = "Assets/microphone-unmuted.png";  // Custom icon while unmuted (should probably only be png)
@@ -123,6 +124,12 @@ namespace Raz.VRCMicOverlay
             const float customMicSfxVolumeLimitMin = 0.0f;
             const float customMicSfxVolumeLimitMax = 1.0f;
             CUSTOM_MIC_SFX_VOLUME = ClampFloat(CUSTOM_MIC_SFX_VOLUME, customMicSfxVolumeLimitMin, customMicSfxVolumeLimitMax);
+
+            bool IsValidFilePathRelative(string filePath) => File.Exists(Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), filePath));
+            if (!IsValidFilePathRelative(FILENAME_IMG_MIC_UNMUTED)) FILENAME_IMG_MIC_UNMUTED = defaultConfig.FILENAME_IMG_MIC_UNMUTED;
+            if (!IsValidFilePathRelative(FILENAME_IMG_MIC_MUTED  )) FILENAME_IMG_MIC_MUTED   = defaultConfig.FILENAME_IMG_MIC_MUTED;
+            if (!IsValidFilePathRelative(FILENAME_SFX_MIC_UNMUTED)) FILENAME_SFX_MIC_UNMUTED = defaultConfig.FILENAME_SFX_MIC_UNMUTED;
+            if (!IsValidFilePathRelative(FILENAME_SFX_MIC_MUTED  )) FILENAME_SFX_MIC_MUTED   = defaultConfig.FILENAME_SFX_MIC_MUTED;
         }
     }
 }
