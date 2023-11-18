@@ -152,6 +152,9 @@ namespace Raz.VRCMicOverlay
             Stopwatch stopWatch = new();
             stopWatch.Start();
 
+            Stopwatch iconShiftStopwatch = new();
+            iconShiftStopwatch.Start();
+
             Console.WriteLine("All Set up! Listening...");
 
 #if DEBUG
@@ -254,6 +257,16 @@ namespace Raz.VRCMicOverlay
 
                     OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayWidthInMeters(overlayHandle, Config.ICON_SIZE * iconState.iconScaleFactorCurrent));
                     OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayAlpha(overlayHandle, iconAlphaFactorSetting));
+
+                    // Handle Icon Shifting
+                    Vector2 offsetDegrees = Vector2.Zero;
+                    if (Config.ICON_SHIFTING)
+                    {
+                        offsetDegrees = GetIconOffsetRadians(Config, iconShiftStopwatch);
+                    }
+
+                    relativeTransform = GetIconTransform(offsetVector, offsetDegrees).ToHmdMatrix34_t();
+                    OVRUtilities.EVROverlayErrorHandler(OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(overlayHandle, 0, ref relativeTransform));
                 }
 
                 // Give up the rest of our time slice to anything else that needs to run
@@ -316,7 +329,7 @@ namespace Raz.VRCMicOverlay
 
 #region Math
 
-        private static Matrix4x4 GetIconTransform(Vector3 offsetVector)
+        private static Matrix4x4 GetIconTransform(Vector3 offsetVector, Vector2 offsetAnglesRadians = default)
         {
             // A "World" matrix is created incorproating our offset; this skews the icon so it always points toward the head
             var rotMatrix = Matrix4x4.CreateWorld(Vector3.Zero, Vector3.Normalize(offsetVector), new Vector3(0, -1, 0));
@@ -326,7 +339,27 @@ namespace Raz.VRCMicOverlay
             
             var offsetMatrix = Matrix4x4.CreateTranslation(offsetVector);
             var relativeTransform = Matrix4x4.Multiply(rotMatrix, offsetMatrix);
+
+            if (offsetAnglesRadians != default)
+            {
+                relativeTransform = Matrix4x4.Multiply(relativeTransform, Matrix4x4.CreateFromAxisAngle(new Vector3(0, 1, 0), offsetAnglesRadians.X));
+                relativeTransform = Matrix4x4.Multiply(relativeTransform, Matrix4x4.CreateFromAxisAngle(new Vector3(1, 0, 0), offsetAnglesRadians.Y));
+            }
             return relativeTransform;
+        }
+
+        private static Vector2 GetIconOffsetRadians(Configuration Config, Stopwatch iconShiftStopwatch)
+        {
+            float iconShiftingAmountRadians = Config.ICON_SHIFTING_AMOUNT * (float)(Math.PI/180);
+
+            // Because Stopwatch.Elapsed.TotalSeconds is a double, we're good for like 5 digits of precision after a year of uptime
+            Vector2 offsetDegrees = new()
+            {
+                X = (float)Math.Sin(iconShiftStopwatch.Elapsed.TotalSeconds * (2 * Math.PI) / Config.ICON_SHIFTING_PERIOD) * iconShiftingAmountRadians,
+                Y = (float)Math.Cos(iconShiftStopwatch.Elapsed.TotalSeconds * (2 * Math.PI) / Config.ICON_SHIFTING_PERIOD) * iconShiftingAmountRadians,
+            };
+
+            return offsetDegrees;
         }
 
         private static float RandomNegativeOneToOne() => Random.Shared.NextSingle() * (Random.Shared.NextSingle() > 0.5f ? 1.0f : -1.0f);

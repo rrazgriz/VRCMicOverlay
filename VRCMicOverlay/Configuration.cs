@@ -19,8 +19,12 @@ namespace Raz.VRCMicOverlay
         public string ICON_TINT_MUTED = "#FF5F5F";      // Icon tint color while muted
         public string ICON_TINT_UNMUTED = "#FFFFFF";    // Icon tint color while unmuted
 
+        public bool ICON_SHIFTING = true;               // Move the icon in a circle slowly over time to avoid or lessen burn-in/burn-out on (u)OLED HMDs. 
+        public float ICON_SHIFTING_PERIOD = 1800.0f;    // Time, in sec, to completely cycle the icon through the shift (defaults to 1800s, 30 minutes)
+        public float ICON_SHIFTING_AMOUNT = 1.3f;       // In degrees - how much to move the icon by (in a circle). Test w/ custom icons/pos by reducing ICON_SHIFTING_TIME to low values (1-2 seconds)
+
         public bool ICON_ALWAYS_ON_TOP = true;          // Whether the icon should show over all other overlays or not
-        public bool ICON_RANDOMIZED_OFFSET = true;      // Randomize icon position about the offset point on startup. May help reduce burn-in/burn-out on (u)OLED HMDs.
+        public bool ICON_RANDOMIZED_OFFSET = false;     // Randomize icon position about the offset point on startup. May help further reduce burn-in/burn-out on (u)OLED HMDs.
 
         // VRChat doesn't output the Voice parameter while muted, so we have to read from a device ourselves
         public string AUDIO_DEVICE_STARTS_WITH = "";    // Enter the first unique characters of your audio device's name (off the list printed out when the app starts. If this is blank, it'll use the default audio device
