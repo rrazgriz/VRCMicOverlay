@@ -88,6 +88,14 @@ namespace Raz.VRCMicOverlay
             if (IsValidHexColor(ICON_TINT_MUTED)) ICON_TINT_MUTED = defaultConfig.ICON_TINT_MUTED;
             if (IsValidHexColor(ICON_TINT_UNMUTED)) ICON_TINT_UNMUTED = defaultConfig.ICON_TINT_UNMUTED;
 
+            const float iconShiftingPeriodLimitMin = 0.1f;
+            const float iconShiftingPeriodLimitMax = 86400f; // About a day, in seconds
+            ICON_SHIFTING_PERIOD = ClampFloat(ICON_SHIFTING_PERIOD, iconShiftingPeriodLimitMin, iconShiftingPeriodLimitMax);
+
+            const float iconShiftingAmountLimitMin = 0.0f;
+            const float iconShiftingAmountLimitMax = 10.0f; // 10 degrees is a LOT to move around the viewsphere
+            ICON_SHIFTING_AMOUNT = ClampFloat(ICON_SHIFTING_AMOUNT, iconShiftingAmountLimitMin, iconShiftingAmountLimitMax);
+
             const float mutedMicThresholdLimitMin = 0.0f;
             const float mutedMicThresholdLimitMax = 1.0f;
             MUTED_MIC_THRESHOLD = ClampFloat(MUTED_MIC_THRESHOLD, mutedMicThresholdLimitMin, mutedMicThresholdLimitMax);
