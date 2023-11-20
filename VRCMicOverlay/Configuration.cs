@@ -84,8 +84,12 @@ namespace Raz.VRCMicOverlay
             MIC_UNMUTED_FADE_PERIOD = ClampFloat(MIC_UNMUTED_FADE_PERIOD, fadeTimeLimitMin, fadeTimeLimitMax);
 
             bool IsValidHexColor(string color) => System.Text.RegularExpressions.Regex.IsMatch(color, @"^#(?:[0-9a-fA-F]{3}){1,2}$"); // Magic regex bs
-            if (IsValidHexColor(ICON_TINT_MUTED)) ICON_TINT_MUTED = defaultConfig.ICON_TINT_MUTED;
-            if (IsValidHexColor(ICON_TINT_UNMUTED)) ICON_TINT_UNMUTED = defaultConfig.ICON_TINT_UNMUTED;
+            if (!ICON_TINT_MUTED.StartsWith('#')) ICON_TINT_MUTED = '#' + ICON_TINT_MUTED;
+            if (!ICON_TINT_UNMUTED.StartsWith('#')) ICON_TINT_UNMUTED = '#' + ICON_TINT_UNMUTED;
+            ICON_TINT_MUTED = ICON_TINT_MUTED.ToUpperInvariant();
+            ICON_TINT_UNMUTED = ICON_TINT_UNMUTED.ToUpperInvariant();
+            if (!IsValidHexColor(ICON_TINT_MUTED)) ICON_TINT_MUTED = defaultConfig.ICON_TINT_MUTED;
+            if (!IsValidHexColor(ICON_TINT_UNMUTED)) ICON_TINT_UNMUTED = defaultConfig.ICON_TINT_UNMUTED;
 
             const float iconShiftingPeriodLimitMin = 0.1f;
             const float iconShiftingPeriodLimitMax = 86400f; // About a day, in seconds
