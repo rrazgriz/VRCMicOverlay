@@ -83,12 +83,27 @@ namespace Raz.VRCMicOverlay
             MIC_UNMUTED_FADE_START  = ClampFloat(MIC_UNMUTED_FADE_START,  fadeTimeLimitMin, fadeTimeLimitMax);
             MIC_UNMUTED_FADE_PERIOD = ClampFloat(MIC_UNMUTED_FADE_PERIOD, fadeTimeLimitMin, fadeTimeLimitMax);
 
-            bool IsValidHexColor(string color) => System.Text.RegularExpressions.Regex.IsMatch(color, @"^#(?:[0-9a-fA-F]{3}){1,2}$"); // Magic regex bs
-            if (!ICON_TINT_MUTED.StartsWith('#')) ICON_TINT_MUTED = '#' + ICON_TINT_MUTED;
+            // Enforce consistent color code formatting
+            if (!ICON_TINT_MUTED.StartsWith('#'))   ICON_TINT_MUTED   = '#' + ICON_TINT_MUTED;
             if (!ICON_TINT_UNMUTED.StartsWith('#')) ICON_TINT_UNMUTED = '#' + ICON_TINT_UNMUTED;
             ICON_TINT_MUTED = ICON_TINT_MUTED.ToUpperInvariant();
             ICON_TINT_UNMUTED = ICON_TINT_UNMUTED.ToUpperInvariant();
-            if (!IsValidHexColor(ICON_TINT_MUTED)) ICON_TINT_MUTED = defaultConfig.ICON_TINT_MUTED;
+
+            /*
+            |   ^#(?:[0-9A-F]{2}){3}$   Matches a color hex string of the form #FF33F3
+            |
+            |   ^                       Match the beginning of the string
+            |    #                      Match the literal character '#'
+            |     (?:                   Open noncapturing group
+            |        [0-9A-F]             Character set: any digits 0-9 or characters A-F (case-sensitive)
+            |                {2}          Match exactly 2 of the preceding token (digit/character match)
+            |                   )       Close noncapturing group
+            |                    {3}    Exactly 3 of the preceding group (hex octets)
+            |                       $   End of the string
+            */
+            const string hexCodeRegex = @"^#(?:[0-9A-F]{2}){3}$";
+            bool IsValidHexColor(string color) => System.Text.RegularExpressions.Regex.IsMatch(color, hexCodeRegex);
+            if (!IsValidHexColor(ICON_TINT_MUTED))   ICON_TINT_MUTED   = defaultConfig.ICON_TINT_MUTED;
             if (!IsValidHexColor(ICON_TINT_UNMUTED)) ICON_TINT_UNMUTED = defaultConfig.ICON_TINT_UNMUTED;
 
             const float iconShiftingPeriodLimitMin = 0.1f;
